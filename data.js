@@ -3,7 +3,7 @@
 ══════════════════════════════════════════════════════════════════════ */
 
 const USER_ROLE = localStorage.getItem('medcmd_role');
-const API_BASE = 'http://127.0.0.1:8000'; // set to 'http://localhost:8000' for local dev
+const API_BASE = 'https://statsync-kese.onrender.com'; // set to 'http://localhost:8000' for local dev
 
 const ROLES = {
   HEAD: {
