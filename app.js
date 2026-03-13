@@ -168,11 +168,17 @@ function renderTankGrid(tanks) {
       + editBtn + '</div>';
   }).join('');
 }
+// Add a global variable to store the reports at the top of the file or right above the function
+let _globalMLCReports = [];
+
 function renderMLCReports(reports) {
   var tbody = document.getElementById('mlc-reports-tbody');
   if (!tbody) return;
+  
+  _globalMLCReports = reports; // Store them for the viewer
+
   if (!reports || reports.length === 0) { 
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--n400);font-size:12px;">No MLC reports generated yet</td></tr>'; 
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--n400);font-size:12px;">No MLC reports generated yet</td></tr>'; 
     return; 
   }
 
@@ -186,6 +192,9 @@ function renderMLCReports(reports) {
       ? '<span class="status-chip sc-on" style="background:var(--g50);color:var(--g700);border:1px solid var(--g200);"><span class="sc-dot"></span>Verified</span>'
       : '<span class="status-chip sc-off" style="background:#fffbeb;color:#d97706;border:1px solid #fde68a;"><span class="sc-dot"></span>AI Draft</span>';
 
+    // NEW: Action Button
+    var actionBtn = `<button class="btn-sm btn-outline" onclick="viewMLCDocument('${r.mlc_number}')">📄 View Doc</button>`;
+
     return '<tr>'
       + '<td style="font-family:\'IBM Plex Mono\';font-size:11px;color:var(--n600);">' + (r.mlc_number || '—') + '</td>'
       + '<td style="font-family:\'IBM Plex Mono\';font-size:10.5px;color:var(--n400);">' + dt + '</td>'
@@ -193,8 +202,74 @@ function renderMLCReports(reports) {
       + '<td><span class="dept-pill">' + (r.incident_type || '—') + '</span></td>'
       + '<td><span class="priority-tag ' + (urgencyCls[r.urgency_level] || 'prio-low') + '">' + (r.urgency_level || 'UNKNOWN') + '</span></td>'
       + '<td>' + statHtml + '</td>'
+      + '<td>' + actionBtn + '</td>' // NEW COLUMN
       + '</tr>';
   }).join('');
+}
+// Logic to populate and open the Document Modal
+function viewMLCDocument(mlcNumber) {
+  const reportWrapper = _globalMLCReports.find(r => r.mlc_number === mlcNumber);
+  if (!reportWrapper) return;
+
+  const data = reportWrapper.report_data;
+  const dateStr = new Date(reportWrapper.created_at).toLocaleString('en-IN');
+  
+  let html = `
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+      <tr>
+        <td style="padding: 5px 0;"><strong>MLC Number:</strong> ${reportWrapper.mlc_number}</td>
+        <td style="padding: 5px 0; text-align: right;"><strong>Date/Time:</strong> ${dateStr}</td>
+      </tr>
+      <tr>
+        <td style="padding: 5px 0;"><strong>Status:</strong> ${reportWrapper.status}</td>
+        <td style="padding: 5px 0; text-align: right;"><strong>Urgency:</strong> ${reportWrapper.urgency_level}</td>
+      </tr>
+    </table>
+
+    <div style="border: 1px solid #000; padding: 15px; margin-bottom: 15px;">
+      <h4 style="margin: 0 0 10px 0; text-decoration: underline;">1. PATIENT DEMOGRAPHICS</h4>
+      <p style="margin: 4px 0;"><strong>Name:</strong> ${data.patient_name || 'Unknown'}</p>
+      <p style="margin: 4px 0;"><strong>Age:</strong> ${data.age || 'Unknown'} | <strong>Gender:</strong> ${data.gender || 'Unknown'}</p>
+      <p style="margin: 4px 0;"><strong>Attendant:</strong> ${data.attendant || 'None'}</p>
+    </div>
+
+    <div style="border: 1px solid #000; padding: 15px; margin-bottom: 15px;">
+      <h4 style="margin: 0 0 10px 0; text-decoration: underline;">2. INCIDENT DETAILS</h4>
+      <p style="margin: 4px 0;"><strong>Type:</strong> ${data.incident_type || 'Unknown'}</p>
+      <p style="margin: 4px 0;"><strong>Location:</strong> ${data.incident_location || 'Unknown'}</p>
+      <p style="margin: 4px 0;"><strong>Transported By:</strong> ${data.transported_by || 'Unknown'} (Call Time: ${data.time_of_call || 'Unknown'})</p>
+      <p style="margin: 4px 0;"><strong>Police Informed:</strong> ${data.police_informed || 'Unknown'}</p>
+    </div>
+
+    <div style="border: 1px solid #000; padding: 15px; margin-bottom: 15px;">
+      <h4 style="margin: 0 0 10px 0; text-decoration: underline;">3. CLINICAL OBSERVATIONS</h4>
+      <p style="margin: 4px 0;"><strong>Vitals:</strong> Consciousness (${data.vital_signs?.consciousness || 'Unknown'}), 
+         Bleeding (${data.vital_signs?.bleeding || 'Unknown'}), 
+         Breathing (${data.vital_signs?.breathing || 'Unknown'})</p>
+      <p style="margin: 4px 0;"><strong>Chief Complaints:</strong> ${(data.chief_complaints || []).join(', ')}</p>
+      <p style="margin: 4px 0;"><strong>Visible Injuries:</strong> ${(data.visible_injuries || []).join(', ')}</p>
+      <p style="margin: 4px 0; margin-top: 10px;"><strong>Additional Notes:</strong><br/> ${data.additional_notes || 'None'}</p>
+    </div>
+  `;
+
+  document.getElementById('mlc-doc-content').innerHTML = html;
+  document.getElementById('mlc-doc-nurse').innerText = reportWrapper.verified_by || 'Not Verified';
+  
+  openModal('modal-mlc-doc');
+}
+
+// Logic to print the document cleanly
+function printMLC() {
+  const printContent = document.getElementById('mlc-print-area').innerHTML;
+  const originalContent = document.body.innerHTML;
+
+  // Temporarily replace the body with just the document to trigger print
+  document.body.innerHTML = printContent;
+  window.print();
+  
+  // Restore the app state immediately after
+  document.body.innerHTML = originalContent;
+  window.location.reload(); // Quickest way to re-bind all JS event listeners after replacing body
 }
 
 // ── CRUD Logic ──────────────────────────────────────────────────────
