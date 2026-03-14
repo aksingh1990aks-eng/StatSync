@@ -1,9 +1,0 @@
-fastapi
-uvicorn
-supabase
-python-dotenv
-pydantic
-groq
-SpeechRecognition
-python-multipart
-
