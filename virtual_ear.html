@@ -4,274 +4,657 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>StatSync — Virtual Ear</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+  /* ─── Design Tokens ─────────────────────────────────────────────────── */
   :root {
-    --bg: #060911; --bg2: #0c1220; --bg3: #080f1a;
-    --border: #1a2d40; --border2: #142030;
-    --text: #c8d6e5; --text2: #7aaccc; --text3: #3a6a8a;
-    --red: #ff2d2d; --orange: #ff8c00; --yellow: #f0c040;
-    --green: #4ade80; --blue: #2a7ab0; --bluelight: #5aaad0;
-    --font: 'Courier New', monospace;
+    /* Greens */
+    --g50:  #f0faf4; --g100: #d4f1e1; --g200: #a8e2c3; --g300: #72cfa0;
+    --g400: #3fb87d; --g500: #22a063; --g600: #1a8450; --g700: #156640;
+    --g800: #104f31; --g900: #0b3a23;
+
+    /* Neutrals */
+    --n0:   #ffffff; --n50:  #f7f8fa; --n100: #eff1f4; --n150: #e3e7ed;
+    --n200: #d0d6df; --n300: #b0bbc8; --n400: #8898aa; --n500: #637586;
+    --n600: #4a5a6a; --n700: #354554; --n800: #243040; --n900: #151e29;
+
+    /* Blues */
+    --b100: #dbeeff; --b200: #b3d9ff; --b400: #5aaad0; --b500: #2a7ab0; --b600: #1a5a8a;
+
+    /* Semantic */
+    --red:    #ef4444; --red-bg:  #fef2f2; --red-border:  #fecaca;
+    --amber:  #f59e0b; --amber-bg:#fffbeb; --amber-border:#fde68a;
+    --green:  var(--g500); --green-bg: var(--g50); --green-border: var(--g200);
+
+    /* Surface */
+    --bg:       var(--n50);
+    --surface:  var(--n0);
+    --border:   var(--n150);
+    --border2:  var(--n100);
+
+    /* Text */
+    --text:     var(--n800);
+    --text2:    var(--n600);
+    --text3:    var(--n400);
+
+    /* Shadows */
+    --s1: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    --s2: 0 4px 12px rgba(0,0,0,.07), 0 2px 6px rgba(0,0,0,.04);
+    --s3: 0 8px 24px rgba(0,0,0,.09), 0 3px 8px rgba(0,0,0,.05);
+
+    /* Typography */
+    --font:  'Outfit', sans-serif;
+    --mono:  'IBM Plex Mono', monospace;
+
+    /* Radii */
+    --r-sm: 8px; --r-md: 12px; --r-lg: 16px;
   }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
 
-  /* scanlines */
-  body::before {
-    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 999;
-    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
   }
 
+  /* ─── Header / Topbar ───────────────────────────────────────────────── */
   header {
-    position: sticky; top: 0; z-index: 100; background: rgba(6,9,17,0.97);
-    border-bottom: 1px solid var(--border); padding: 14px 28px;
-    display: flex; align-items: center; justify-content: space-between; backdrop-filter: blur(10px);
+    position: sticky; top: 0; z-index: 100;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    height: 58px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: var(--s1);
   }
+
   .logo { display: flex; align-items: center; gap: 12px; }
-  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); transition: all .3s; }
-  .dot.live { background: var(--red); box-shadow: 0 0 12px var(--red); animation: blink 1s infinite; }
-  .logo-text { font-size: 18px; font-weight: 700; letter-spacing: .2em; color: #e2eaf2; }
-  .logo-sub { font-size: 11px; color: var(--text3); letter-spacing: .15em; }
-  .timer { font-size: 13px; color: #ff6060; display: none; }
-  .timer.active { display: block; }
-  .version { font-size: 11px; color: #1a3a5a; letter-spacing: .1em; }
 
-  main { padding: 24px 28px; max-width: 1100px; margin: 0 auto; }
+  .logo-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--g500), var(--g700));
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; color: white; box-shadow: 0 2px 6px rgba(34,160,99,.35);
+  }
 
-  .panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
-  .label { font-size: 10px; color: var(--text3); letter-spacing: .2em; margin-bottom: 6px; text-transform: uppercase; }
+  /* The live dot — kept as #liveDot, just restyled */
+  .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--n200); transition: all .3s;
+    flex-shrink: 0;
+  }
+  .dot.live {
+    background: var(--red);
+    box-shadow: 0 0 0 3px rgba(239,68,68,.2);
+    animation: blink 1s infinite;
+  }
 
-  /* Control Panel */
-  .control { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+  .logo-text {
+    font-size: 16px; font-weight: 700;
+    color: var(--n800); letter-spacing: .04em;
+  }
+  .logo-sub {
+    font-size: 11px; font-weight: 500;
+    color: var(--text3); letter-spacing: .08em;
+    background: var(--g50); border: 1px solid var(--g200);
+    padding: 2px 8px; border-radius: 20px; font-family: var(--mono);
+  }
+
+  .header-right { display: flex; gap: 16px; align-items: center; }
+
+  .timer {
+    font-size: 12px; font-weight: 600; font-family: var(--mono);
+    color: var(--red); background: var(--red-bg);
+    border: 1px solid var(--red-border);
+    padding: 4px 10px; border-radius: 20px; display: none;
+  }
+  .timer.active { display: flex; align-items: center; gap: 5px; }
+
+  .version {
+    font-size: 11px; font-weight: 500;
+    color: var(--text3); font-family: var(--mono);
+  }
+
+  /* ─── Main Layout ───────────────────────────────────────────────────── */
+  main {
+    padding: 28px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  /* ─── Page Title Row ────────────────────────────────────────────────── */
+  .page-title-row {
+    text-align: center;
+    margin-bottom: 0;  /* title is now inside the hero panel */
+  }
+  .page-title { font-size: 24px; font-weight: 700; color: var(--n900); }
+  .page-subtitle { font-size: 14px; color: var(--text2); margin-top: 4px; }
+
+  /* Hero control panel — centered */
+  .hero-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 40px 24px 32px;
+    margin-bottom: 20px;
+    box-shadow: var(--s2);
+    display: flex; flex-direction: column; align-items: center;
+    gap: 24px;
+  }
+
+  /* ─── Card / Panel ──────────────────────────────────────────────────── */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--s1);
+  }
+
+  .label {
+    font-size: 10px; font-weight: 600;
+    color: var(--text3); letter-spacing: .12em;
+    margin-bottom: 6px; text-transform: uppercase;
+    font-family: var(--mono);
+  }
+
+  /* ─── Control Panel ─────────────────────────────────────────────────── */
+  .control {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 28px;
+    padding: 12px 0 8px;
+  }
+
+  /* Hero mic button */
   .mic-btn {
-    width: 90px; height: 90px; border-radius: 50%; border: none; cursor: pointer; flex-shrink: 0;
-    background: radial-gradient(circle, #1a3a5c 0%, #0a1a2c 70%);
-    box-shadow: 0 0 20px rgba(30,80,120,.3); transition: all .15s ease;
-    font-size: 28px; display: flex; align-items: center; justify-content: center;
+    width: 148px; height: 148px; border-radius: 50%; border: none;
+    cursor: pointer; flex-shrink: 0; transition: all .2s ease;
+    font-size: 52px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--g50);
+    border: 3px solid var(--g200);
+    box-shadow: 0 0 0 10px var(--g50), 0 0 0 11px var(--g200), var(--s3);
+    color: var(--g600);
+  }
+  .mic-btn:hover:not(:disabled) {
+    background: var(--g100);
+    border-color: var(--g400);
+    box-shadow: 0 0 0 10px var(--g100), 0 0 0 11px var(--g300), 0 10px 32px rgba(34,160,99,.22);
+    transform: scale(1.04);
   }
   .mic-btn.recording {
-    background: radial-gradient(circle, #8b0000 0%, #3d0000 70%);
-    box-shadow: 0 0 30px rgba(255,45,45,.5), 0 0 60px rgba(255,45,45,.2);
-    animation: pulse 1s ease-in-out infinite;
+    background: linear-gradient(135deg, #fee2e2, #fecaca);
+    border-color: var(--red);
+    box-shadow: 0 0 0 10px #fef2f2, 0 0 0 11px #fecaca, 0 8px 28px rgba(239,68,68,.2);
+    animation: pulse 1.2s ease-in-out infinite;
+    color: var(--red);
   }
-  .mic-btn:disabled { opacity: .5; cursor: not-allowed; }
-  .status-area { flex: 1; }
-  .status-label { font-size: 12px; color: var(--bluelight); letter-spacing: .1em; margin-bottom: 6px; }
-  .status-main { font-size: 20px; font-weight: 700; letter-spacing: .05em; color: var(--text3); }
-  .status-main.active { color: #ff6060; }
-  .waveform { display: flex; gap: 3px; height: 28px; align-items: flex-end; margin-top: 10px; display: none; }
-  .waveform.show { display: flex; }
-  .wave-bar { width: 4px; border-radius: 2px; background: rgba(255,60,60,.7); animation: wave .4s ease infinite; }
+  .mic-btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 
-  /* Error banner */
-  .error-box { padding: 10px 16px; background: rgba(180,30,30,.15); border: 1px solid #5a1a1a; border-radius: 6px; font-size: 12px; color: #ff8080; margin-top: 14px; display: none; }
+  .status-area {
+    text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+
+  .status-label {
+    font-size: 11px; font-weight: 600;
+    color: var(--text3); letter-spacing: .1em;
+    text-transform: uppercase; font-family: var(--mono);
+  }
+
+  .status-main {
+    font-size: 20px; font-weight: 700;
+    color: var(--n700); letter-spacing: .02em;
+  }
+  .status-main.active { color: var(--red); }
+
+  .waveform {
+    display: flex; gap: 3px; height: 28px;
+    align-items: flex-end; margin-top: 6px; display: none;
+    justify-content: center;
+  }
+  .waveform.show { display: flex; }
+  .wave-bar {
+    width: 4px; border-radius: 2px;
+    background: linear-gradient(to top, var(--g400), var(--g300));
+    animation: wave .4s ease infinite;
+  }
+
+  /* ─── Error Box ─────────────────────────────────────────────────────── */
+  .error-box {
+    margin-top: 14px; padding: 10px 14px;
+    background: var(--red-bg); border: 1px solid var(--red-border);
+    border-radius: var(--r-sm); font-size: 13px; color: var(--red);
+    display: none;
+  }
   .error-box.show { display: block; }
 
-  /* Tabs */
-  .tabs { display: flex; gap: 4px; margin-bottom: 0; }
-  .tab-btn {
-    padding: 8px 20px; border: none; cursor: pointer; font-family: var(--font);
-    font-size: 12px; letter-spacing: .1em; text-transform: uppercase;
-    background: transparent; color: var(--text3);
-    border-bottom: 2px solid transparent; border-radius: 6px 6px 0 0;
-    transition: all .2s;
+  /* ─── Tabs ──────────────────────────────────────────────────────────── */
+  .tabs {
+    display: flex; gap: 2px;
+    background: var(--n100); border-radius: 10px 10px 0 0;
+    padding: 4px 4px 0;
   }
-  .tab-btn.active { background: var(--bg2); color: var(--bluelight); border-bottom-color: var(--blue); }
+  .tab-btn {
+    padding: 9px 20px; border: none; cursor: pointer;
+    font-family: var(--font); font-size: 13px; font-weight: 500;
+    color: var(--text3); background: transparent;
+    border-radius: 8px 8px 0 0;
+    transition: all .2s; letter-spacing: .02em;
+  }
+  .tab-btn.active {
+    background: var(--surface); color: var(--g600);
+    font-weight: 600;
+    box-shadow: 0 -1px 0 var(--g400) inset, var(--s1);
+  }
+  .tab-btn:hover:not(.active) { color: var(--text); background: rgba(255,255,255,.6); }
+
   .tab-content { display: none; }
   .tab-content.active { display: block; }
 
-  /* Transcript */
-  .transcript-box { font-size: 14px; line-height: 1.8; color: #a0c0d8; padding: 20px; background: var(--bg2); border: 1px solid var(--border); border-radius: 0 12px 12px 12px; min-height: 100px; }
+  /* ─── Transcript Box ────────────────────────────────────────────────── */
+  .transcript-box {
+    font-size: 14px; line-height: 1.9;
+    color: var(--text2); padding: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 var(--r-md) var(--r-md);
+    min-height: 110px;
+    font-family: var(--font);
+  }
   .interim { color: var(--text3); font-style: italic; }
 
-  /* Processing */
-  .processing { text-align: center; padding: 40px; }
-  .processing-icon { font-size: 32px; animation: spin 2s linear infinite; display: inline-block; }
-  .processing-label { font-size: 13px; color: #4a8aaa; letter-spacing: .2em; margin-top: 14px; }
+  /* ─── Processing ────────────────────────────────────────────────────── */
+  .processing {
+    text-align: center; padding: 48px 24px;
+    background: var(--surface);
+    border: 1px solid var(--border); border-top: none;
+    border-radius: 0 0 var(--r-md) var(--r-md);
+  }
+  .processing-icon {
+    font-size: 28px; display: inline-block;
+    animation: spin 2s linear infinite; color: var(--g500);
+  }
+  .processing-label {
+    font-size: 13px; color: var(--text2);
+    letter-spacing: .05em; margin-top: 14px; font-weight: 500;
+  }
 
-  /* MLC Report */
-  .mlc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
-  .mlc-number { font-size: 22px; font-weight: 700; color: #e2eaf2; letter-spacing: .05em; }
+  /* ─── MLC Report Card ───────────────────────────────────────────────── */
+  .mlc-header {
+    display: flex; justify-content: space-between;
+    align-items: flex-start; margin-bottom: 20px;
+    flex-wrap: wrap; gap: 12px;
+    padding-bottom: 18px; border-bottom: 1px solid var(--border2);
+  }
+  .mlc-number {
+    font-size: 20px; font-weight: 700;
+    color: var(--n900); font-family: var(--mono); letter-spacing: .05em;
+  }
   .urgency-badge {
-    padding: 8px 20px; border-radius: 20px; font-size: 13px; font-weight: 700; letter-spacing: .15em;
+    padding: 6px 16px; border-radius: 20px;
+    font-size: 11px; font-weight: 700; letter-spacing: .12em;
+    font-family: var(--mono); text-transform: uppercase;
   }
+
+  /* Banners */
   .warn-banner, .ok-banner {
-    padding: 10px 16px; border-radius: 6px; font-size: 12px; margin-bottom: 18px;
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; border-radius: var(--r-sm);
+    font-size: 13px; font-weight: 500; margin-bottom: 18px;
   }
-  .warn-banner { background: rgba(255,160,0,.08); border: 1px solid rgba(255,160,0,.3); color: #ffb830; }
-  .ok-banner { background: rgba(74,222,128,.08); border: 1px solid rgba(74,222,128,.3); color: #4ade80; display: none; }
+  .warn-banner {
+    background: var(--amber-bg); border: 1px solid var(--amber-border); color: var(--amber);
+  }
+  .ok-banner {
+    background: var(--green-bg); border: 1px solid var(--green-border); color: var(--g600);
+    display: none;
+  }
 
+  /* Fields */
   .fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-  .field-group { display: flex; flex-direction: column; gap: 4px; }
-  .field-label { font-size: 10px; color: var(--text3); letter-spacing: .15em; }
+
+  .field-group { display: flex; flex-direction: column; gap: 5px; }
+  .field-label {
+    font-size: 10px; font-weight: 600;
+    color: var(--text3); letter-spacing: .1em;
+    font-family: var(--mono);
+  }
   .field-input {
-    background: var(--bg3); border: 1px solid var(--border); border-radius: 5px;
-    padding: 8px 10px; color: #a0c0d8; font-size: 13px; font-family: var(--font);
-    width: 100%; transition: border .2s;
+    background: var(--n50); border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 8px 11px; color: var(--text);
+    font-size: 13px; font-family: var(--font); font-weight: 500;
+    width: 100%; transition: border .18s, box-shadow .18s;
   }
-  .field-input:focus { outline: none; border-color: var(--blue); }
-  .field-input:disabled { opacity: .6; }
+  .field-input:focus {
+    outline: none;
+    border-color: var(--g400);
+    box-shadow: 0 0 0 3px rgba(34,160,99,.12);
+    background: var(--surface);
+  }
+  .field-input:disabled {
+    opacity: .65; background: var(--n100); cursor: not-allowed;
+  }
 
-  .vitals-box { margin-top: 16px; padding: 16px; background: var(--bg3); border-radius: 8px; border: 1px solid var(--border2); }
-  .vitals-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
+  /* Vitals */
+  .vitals-box {
+    margin-top: 18px; padding: 16px;
+    background: var(--n50); border-radius: var(--r-md);
+    border: 1px solid var(--border2);
+  }
+  .vitals-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 10px; }
 
-  .tags-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-  .tag-injury { padding: 4px 12px; background: rgba(220,60,60,.12); border: 1px solid rgba(220,60,60,.3); border-radius: 20px; font-size: 12px; color: #ff9090; }
-  .tag-complaint { padding: 4px 12px; background: rgba(60,120,220,.12); border: 1px solid rgba(60,120,220,.3); border-radius: 20px; font-size: 12px; color: #88b8f0; }
+  /* Tags */
+  .tags-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 
+  .tag-injury {
+    padding: 4px 12px;
+    background: #fef2f2; border: 1px solid #fecaca;
+    border-radius: 20px; font-size: 12px; font-weight: 500; color: #dc2626;
+  }
+  .tag-complaint {
+    padding: 4px 12px;
+    background: var(--b100); border: 1px solid var(--b200);
+    border-radius: 20px; font-size: 12px; font-weight: 500; color: var(--b500);
+  }
+
+  /* Notes */
   .notes-area {
-    width: 100%; background: var(--bg3); border: 1px solid var(--border);
-    border-radius: 6px; padding: 10px 12px; color: #a0c0d8; font-size: 13px;
-    font-family: var(--font); resize: vertical; margin-top: 10px;
+    width: 100%;
+    background: var(--n50); border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 10px 12px; color: var(--text);
+    font-size: 13px; font-family: var(--font);
+    resize: vertical; margin-top: 8px;
+    transition: border .18s, box-shadow .18s;
   }
-  .notes-area:focus { outline: none; border-color: var(--blue); }
+  .notes-area:focus {
+    outline: none;
+    border-color: var(--g400);
+    box-shadow: 0 0 0 3px rgba(34,160,99,.12);
+    background: var(--surface);
+  }
 
-  /* Nurse verify section */
-  .verify-section { margin-top: 20px; padding: 16px; background: rgba(74,222,128,.04); border: 1px solid rgba(74,222,128,.15); border-radius: 8px; }
+  /* ─── Nurse Verify Section ──────────────────────────────────────────── */
+  .verify-section {
+    margin-top: 20px; padding: 18px 20px;
+    background: var(--g50); border: 1px solid var(--g200);
+    border-radius: var(--r-md);
+    display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
+  }
+  .verify-label-col { flex: 1 0 100%; margin-bottom: 4px; }
+
   .nurse-input {
-    background: var(--bg3); border: 1px solid var(--border); border-radius: 5px;
-    padding: 8px 12px; color: #a0c0d8; font-family: var(--font); font-size: 13px;
-    width: 240px; margin-right: 12px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    padding: 9px 13px; color: var(--text);
+    font-family: var(--font); font-size: 13px; font-weight: 500;
+    width: 220px; transition: border .18s, box-shadow .18s;
   }
-  .nurse-input:focus { outline: none; border-color: var(--green); }
+  .nurse-input:focus {
+    outline: none;
+    border-color: var(--g400);
+    box-shadow: 0 0 0 3px rgba(34,160,99,.12);
+  }
 
-  .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-family: var(--font); font-size: 12px; letter-spacing: .1em; transition: opacity .2s; }
-  .btn:hover { opacity: .85; }
-  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text3); }
-  .btn-verify { background: rgba(74,222,128,.15); border: 1px solid var(--green); color: var(--green); font-weight: 700; }
-  .btn-regen { background: transparent; border: 1px solid var(--blue); color: var(--bluelight); }
+  /* ─── Buttons ───────────────────────────────────────────────────────── */
+  .btn {
+    padding: 9px 18px; border-radius: var(--r-sm);
+    border: 1px solid transparent; cursor: pointer;
+    font-family: var(--font); font-size: 13px; font-weight: 600;
+    letter-spacing: .02em; transition: all .18s;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn:active { transform: translateY(0); }
 
-  /* Steps guide */
-  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 24px; }
-  .step-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
-  .step-num { font-size: 10px; color: var(--text3); letter-spacing: .2em; margin-bottom: 8px; }
-  .step-icon { font-size: 22px; margin-bottom: 8px; }
-  .step-title { font-size: 14px; color: var(--text2); font-weight: 700; margin-bottom: 6px; }
-  .step-desc { font-size: 12px; color: var(--text3); line-height: 1.6; }
+  .btn-ghost {
+    background: transparent; border-color: var(--border);
+    color: var(--text2);
+  }
+  .btn-ghost:hover { background: var(--n100); border-color: var(--n200); }
 
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
-  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
-  @keyframes wave { 0%,100%{height:30%} 50%{height:90%} }
-  @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  .btn-verify {
+    background: var(--g500); color: white; border-color: var(--g600);
+    box-shadow: 0 2px 6px rgba(34,160,99,.3);
+  }
+  .btn-verify:hover { background: var(--g600); box-shadow: 0 4px 12px rgba(34,160,99,.4); }
 
-  @media (max-width: 600px) {
-    .fields-grid, .vitals-grid, .steps { grid-template-columns: 1fr; }
+  .btn-regen {
+    background: var(--surface); border-color: var(--b400); color: var(--b500);
+    box-shadow: var(--s1);
+  }
+  .btn-regen:hover { background: var(--b100); border-color: var(--b500); }
+
+  /* ─── Steps Guide — compact hint strip ─────────────────────────────── */
+  .steps {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 12px; margin-top: 8px;
+  }
+
+  .step-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--r-md); padding: 14px 16px;
+    box-shadow: var(--s1);
+    position: relative; overflow: hidden;
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .step-card:hover { box-shadow: var(--s2); }
+
+  .step-card::before {
+    content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 3px;
+    background: linear-gradient(180deg, var(--g400), var(--g300));
+    border-radius: var(--r-md) 0 0 var(--r-md);
+  }
+
+  .step-left { flex-shrink: 0; }
+
+  .step-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--g50); border: 1px solid var(--g200);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+
+  .step-body { flex: 1; }
+
+  .step-num {
+    font-size: 9px; font-weight: 700; font-family: var(--mono);
+    color: var(--g500); letter-spacing: .15em;
+    text-transform: uppercase; margin-bottom: 3px;
+  }
+  .step-title {
+    font-size: 13px; font-weight: 600;
+    color: var(--n700); margin-bottom: 3px;
+  }
+  .step-desc {
+    font-size: 12px; color: var(--text3); line-height: 1.5;
+  }
+
+  /* ─── Section dividers ──────────────────────────────────────────────── */
+  .section-heading {
+    font-size: 13px; font-weight: 600; color: var(--text2);
+    margin-bottom: 4px; margin-top: 18px;
+  }
+
+  /* ─── Animations ────────────────────────────────────────────────────── */
+  @keyframes blink   { 0%,100%{opacity:1} 50%{opacity:.3} }
+  @keyframes pulse   { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
+  @keyframes wave    { 0%,100%{height:25%} 50%{height:90%} }
+  @keyframes spin    { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+
+  /* ─── Responsive ────────────────────────────────────────────────────── */
+  @media (max-width: 700px) {
+    .fields-grid, .vitals-grid { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: 1fr; }
     main { padding: 16px; }
+    header { padding: 0 16px; }
+    .verify-section { flex-direction: column; align-items: flex-start; }
+    .nurse-input { width: 100%; }
+    .mic-btn { width: 120px; height: 120px; font-size: 42px; }
+    .hero-panel { padding: 32px 16px 24px; }
   }
 </style>
 </head>
 <body>
 
+<!-- ─── Header ──────────────────────────────────────────────────────────── -->
 <header>
   <div class="logo">
+    <div class="logo-icon">🩺</div>
     <div class="dot" id="liveDot"></div>
-    <span class="logo-text">VIRTUAL EAR</span>
-    <span class="logo-sub">// MLC AUTO-DRAFT</span>
+    <span class="logo-text">Virtual Ear</span>
+    <span class="logo-sub">MLC AUTO-DRAFT</span>
   </div>
-  <div style="display:flex;gap:20px;align-items:center">
+  <div class="header-right">
     <span class="timer" id="timerDisplay">⏱ 00:00</span>
     <span class="version">StatSync v1.0</span>
   </div>
 </header>
 
+<!-- ─── Main ────────────────────────────────────────────────────────────── -->
 <main>
-  <div class="panel">
+
+  <!-- Hero Panel: Title + Mic (centered) -->
+  <div class="hero-panel">
+
+    <!-- Page title sits above the mic -->
+    <div class="page-title-row">
+      <div class="page-title">Virtual Ear</div>
+      <div class="page-subtitle">Record ambulance calls — AI drafts the MLC report instantly.</div>
+    </div>
+
+    <!-- Control: mic + status, now stacked vertically -->
     <div class="control">
       <button class="mic-btn" id="micBtn" onclick="toggleRecording()">🎙</button>
       <div class="status-area">
-        <div class="status-label" id="statusLabel">▷ PRESS TO BEGIN RECORDING CALL</div>
-        <div class="status-main" id="statusMain">STANDBY</div>
-        <div class="waveform" id="waveform">
-          </div>
+        <div class="status-label" id="statusLabel">Press mic to begin recording</div>
+        <div class="status-main" id="statusMain">Standby</div>
+        <div class="waveform" id="waveform"></div>
       </div>
-      <button class="btn btn-regen" id="regenBtn" style="display:none" onclick="regenerate()">↻ RE-GENERATE</button>
     </div>
+
     <div class="error-box" id="errorBox"></div>
   </div>
 
+  <!-- Re-generate button (only visible after a report is done) -->
+  <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+    <button class="btn btn-regen" id="regenBtn" style="display:none" onclick="regenerate()">↻ Re-generate</button>
+  </div>
+
+  <!-- Tabs + content -->
   <div id="tabsArea" style="display:none">
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('transcript', this)">📻 Raw Transcript</button>
       <button class="tab-btn" onclick="switchTab('report', this)">📋 MLC Draft Report</button>
     </div>
 
+    <!-- Transcript tab -->
     <div class="tab-content active" id="tab-transcript">
       <div class="transcript-box" id="transcriptBox">
         <span id="finalText"></span><span class="interim" id="interimText"></span>
       </div>
     </div>
 
+    <!-- Report tab -->
     <div class="tab-content" id="tab-report">
+
+      <!-- Processing state -->
       <div class="processing" id="processingBox" style="display:none">
         <span class="processing-icon">⚙</span>
-        <div class="processing-label">AI PARSING TRANSCRIPT → MLC DRAFT...</div>
+        <div class="processing-label">AI parsing transcript → MLC draft…</div>
       </div>
 
+      <!-- MLC Form -->
       <div id="mlcForm" style="display:none" class="panel" style="margin-bottom:0">
+
         <div class="mlc-header">
           <div>
-            <div class="label">MEDICO-LEGAL CASE REPORT</div>
+            <div class="label">Medico-Legal Case Report</div>
             <div class="mlc-number" id="mlcNumber">—</div>
           </div>
           <div class="urgency-badge" id="urgencyBadge">—</div>
         </div>
 
-        <div class="warn-banner" id="warnBanner">⚠ AI DRAFT — PROVISIONAL. All fields are editable. Nurse must verify before submission.</div>
-        <div class="ok-banner" id="okBanner">✓ VERIFIED — Cleared for hospital records.</div>
+        <div class="warn-banner" id="warnBanner">⚠ AI Draft — Provisional. All fields are editable. Nurse must verify before submission.</div>
+        <div class="ok-banner" id="okBanner">✓ Verified — Cleared for hospital records.</div>
 
+        <!-- Main fields -->
         <div class="fields-grid" id="fieldsGrid"></div>
 
+        <!-- Vitals -->
         <div class="vitals-box">
-          <div class="label">VITAL SIGNS (REPORTED)</div>
+          <div class="label">Vital Signs (Reported)</div>
           <div class="vitals-grid" id="vitalsGrid"></div>
         </div>
 
-        <div style="margin-top:14px">
-          <div class="label">VISIBLE INJURIES</div>
+        <!-- Injuries + Complaints -->
+        <div style="margin-top:16px">
+          <div class="label">Visible Injuries</div>
           <div class="tags-row" id="injuriesTags"></div>
         </div>
-        <div style="margin-top:14px">
-          <div class="label">CHIEF COMPLAINTS</div>
+        <div style="margin-top:16px">
+          <div class="label">Chief Complaints</div>
           <div class="tags-row" id="complaintsTags"></div>
         </div>
-        <div style="margin-top:14px">
-          <div class="label">ADDITIONAL NOTES</div>
-          <textarea class="notes-area" id="notesField" rows="3"></textarea>
+
+        <!-- Notes -->
+        <div style="margin-top:16px">
+          <div class="label">Additional Notes</div>
+          <textarea class="notes-area" id="notesField" rows="3" placeholder="Any extra context…"></textarea>
         </div>
 
+        <!-- Nurse verify -->
         <div class="verify-section" id="verifySection">
-          <div class="label" style="margin-bottom:10px">NURSE VERIFICATION</div>
-          <input class="nurse-input" id="nurseInput" type="text" placeholder="Enter nurse name..." />
-          <button class="btn btn-verify" onclick="verifyMLC()">✓ VERIFY & SUBMIT</button>
-          <button class="btn btn-ghost" style="margin-left:8px" onclick="discardReport()">DISCARD</button>
+          <div class="verify-label-col">
+            <div class="label" style="margin-bottom:0">Nurse Verification</div>
+          </div>
+          <input class="nurse-input" id="nurseInput" type="text" placeholder="Enter nurse name…" />
+          <button class="btn btn-verify" onclick="verifyMLC()">✓ Verify &amp; Submit</button>
+          <button class="btn btn-ghost" onclick="discardReport()">Discard</button>
         </div>
-      </div>
-    </div>
-  </div>
 
+      </div><!-- /mlcForm -->
+    </div><!-- /tab-report -->
+  </div><!-- /tabsArea -->
+
+  <!-- Steps Guide — compact hints at the bottom -->
   <div class="steps" id="stepsGuide">
     <div class="step-card">
-      <div class="step-num">STEP 01</div>
-      <div class="step-icon">🎙</div>
-      <div class="step-title">Record Call</div>
-      <div class="step-desc">Press the mic button and narrate the ambulance call details aloud. Note: Please use Chrome/Edge for mic access.</div>
+      <div class="step-left"><div class="step-icon">🎙</div></div>
+      <div class="step-body">
+        <div class="step-num">Step 01</div>
+        <div class="step-title">Record Call</div>
+        <div class="step-desc">Narrate the ambulance call aloud. Use Chrome/Edge for mic access.</div>
+      </div>
     </div>
     <div class="step-card">
-      <div class="step-num">STEP 02</div>
-      <div class="step-icon">⚙</div>
-      <div class="step-title">AI Drafts MLC</div>
-      <div class="step-desc">Virtual Ear sends transcript to Claude AI which extracts and fills all MLC fields instantly.</div>
+      <div class="step-left"><div class="step-icon">⚙</div></div>
+      <div class="step-body">
+        <div class="step-num">Step 02</div>
+        <div class="step-title">AI Drafts MLC</div>
+        <div class="step-desc">Claude AI extracts and fills all MLC fields from the transcript instantly.</div>
+      </div>
     </div>
     <div class="step-card">
-      <div class="step-num">STEP 03</div>
-      <div class="step-icon">✓</div>
-      <div class="step-title">Nurse Verifies</div>
-      <div class="step-desc">Review every field, correct if needed, sign your name and verify — saves to Supabase.</div>
+      <div class="step-left"><div class="step-icon">✓</div></div>
+      <div class="step-body">
+        <div class="step-num">Step 03</div>
+        <div class="step-title">Nurse Verifies</div>
+        <div class="step-desc">Review, correct if needed, sign and verify — saves to Supabase.</div>
+      </div>
     </div>
   </div>
 
 </main>
 
+<!-- ─── JavaScript — UNCHANGED ─────────────────────────────────────────── -->
 <script>
 // IMPORTANT: Points to your local FastAPI server
 const API_BASE_URL = 'https://statsync-kese.onrender.com';
@@ -429,14 +812,18 @@ async function regenerate() {
 }
 
 // ─── Render MLC ───────────────────────────────────────────────────────────────
-const URGENCY_COLORS = { CRITICAL:'#ff2d2d', HIGH:'#ff8c00', MODERATE:'#f0c040', LOW:'#4ade80' };
+const URGENCY_COLORS = { CRITICAL:'#ef4444', HIGH:'#f59e0b', MODERATE:'#3b82f6', LOW:'#22a063' };
+const URGENCY_BGS    = { CRITICAL:'#fef2f2', HIGH:'#fffbeb', MODERATE:'#eff6ff', LOW:'#f0faf4' };
+const URGENCY_BORDERS= { CRITICAL:'#fecaca', HIGH:'#fde68a', MODERATE:'#bfdbfe', LOW:'#a8e2c3' };
 
 function renderMLC(r) {
   document.getElementById('mlcNumber').textContent = r.mlc_number;
   const ub = document.getElementById('urgencyBadge');
-  const uc = URGENCY_COLORS[r.urgency_level] || '#888';
+  const uc  = URGENCY_COLORS[r.urgency_level]  || '#637586';
+  const ubg = URGENCY_BGS[r.urgency_level]     || '#f7f8fa';
+  const ubr = URGENCY_BORDERS[r.urgency_level] || '#e3e7ed';
   ub.textContent = r.urgency_level;
-  ub.style.cssText = `padding:8px 20px;border-radius:20px;font-size:13px;font-weight:700;letter-spacing:.15em;background:${uc}22;border:1px solid ${uc};color:${uc}`;
+  ub.style.cssText = `padding:6px 16px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.12em;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;background:${ubg};border:1px solid ${ubr};color:${uc}`;
 
   // Main fields
   const mainFields = [
@@ -470,7 +857,7 @@ function renderMLC(r) {
   document.getElementById('notesField').value = r.additional_notes || '';
   document.getElementById('okBanner').style.display = 'none';
   document.getElementById('warnBanner').style.display = 'block';
-  document.getElementById('verifySection').style.display = 'block';
+  document.getElementById('verifySection').style.display = 'flex';
   document.getElementById('nurseInput').value = '';
   document.querySelectorAll('.field-input').forEach(i => i.disabled = false);
   document.getElementById('notesField').disabled = false;
@@ -501,8 +888,8 @@ function setUIState(state) {
   if (state === 'recording') {
     btn.className = 'mic-btn recording'; btn.textContent = '⏹';
     dot.className = 'dot live';
-    label.textContent = '▶ RECORDING AMBULANCE CALL...';
-    main.textContent = 'LIVE — CAPTURING AUDIO'; main.className = 'status-main active';
+    label.textContent = 'Recording ambulance call…';
+    main.textContent = 'Live — Capturing Audio'; main.className = 'status-main active';
     timer.className = 'timer active';
     wf.className = 'waveform show'; renderWaveBars();
     tabs.style.display = 'block'; steps.style.display = 'none';
@@ -511,20 +898,20 @@ function setUIState(state) {
   } else if (state === 'processing') {
     btn.className = 'mic-btn'; btn.textContent = '⚙'; btn.disabled = true;
     dot.className = 'dot';
-    label.textContent = '▶ PROCESSING → MLC DRAFT';
-    main.textContent = 'GENERATING REPORT...'; main.className = 'status-main active';
+    label.textContent = 'Processing → MLC draft';
+    main.textContent = 'Generating Report…'; main.className = 'status-main active';
     wf.className = 'waveform'; clearWaveBars();
   } else if (state === 'done') {
     btn.className = 'mic-btn'; btn.textContent = '🎙'; btn.disabled = false;
     dot.className = 'dot';
-    label.textContent = '▷ CALL ENDED — REPORT READY';
-    main.textContent = 'READY'; main.className = 'status-main';
-    regen.style.display = 'inline-block';
+    label.textContent = 'Call ended — Report ready';
+    main.textContent = 'Ready'; main.className = 'status-main';
+    regen.style.display = 'inline-flex';
   } else { // idle
     btn.className = 'mic-btn'; btn.textContent = '🎙'; btn.disabled = false;
     dot.className = 'dot';
-    label.textContent = '▷ PRESS TO BEGIN RECORDING CALL';
-    main.textContent = 'STANDBY'; main.className = 'status-main';
+    label.textContent = 'Press mic to begin recording';
+    main.textContent = 'Standby'; main.className = 'status-main';
     wf.className = 'waveform'; clearWaveBars();
     timer.className = 'timer';
     regen.style.display = 'none';

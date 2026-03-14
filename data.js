@@ -47,12 +47,12 @@ const chartsReady = {};
 
 // Mock Data Seeds
 var doctorDataSeed = [
-  {_id:'d1',name:'Dr. James Mitchell',dept:'Cardiology',   shift:'07:00-15:00',appts:12,status:'on-duty'},
-  {_id:'d2',name:'Dr. Priya Sharma',  dept:'Neurology',    shift:'08:00-16:00',appts:8, status:'on-duty'},
-  {_id:'d3',name:'Dr. Aisha Patel',   dept:'Orthopedics',  shift:'09:00-17:00',appts:10,status:'on-duty'},
-  {_id:'d4',name:'Dr. Robert Hayes',  dept:'Emergency Med',shift:'15:00-23:00',appts:5, status:'on-duty'},
-  {_id:'d5',name:'Dr. Elena Vasquez', dept:'Oncology',     shift:'07:00-15:00',appts:7, status:'off-duty'},
-  {_id:'d6',name:'Dr. Marcus Lee',    dept:'Pulmonology',  shift:'00:00-08:00',appts:3, status:'off-duty'},
+  {_id:'d1',name:'Dr. James Mitchell',phone:'919296022533',dept:'Cardiology',   shift:'07:00-15:00',appts:12,status:'on-duty'},
+  {_id:'d2',name:'Dr. Priya Sharma',  phone:'919296022533',dept:'Neurology',    shift:'08:00-16:00',appts:8, status:'on-duty'},
+  {_id:'d3',name:'Dr. Aisha Patel',   phone:'919296022533',dept:'Orthopedics',  shift:'09:00-17:00',appts:10,status:'on-duty'},
+  {_id:'d4',name:'Dr. Robert Hayes',  phone:'919876543213',dept:'Emergency Med',shift:'15:00-23:00',appts:5, status:'on-duty'},
+  {_id:'d5',name:'Dr. Elena Vasquez', phone:'919876543214',dept:'Oncology',     shift:'07:00-15:00',appts:7, status:'off-duty'},
+  {_id:'d6',name:'Dr. Marcus Lee',    phone:'919876543215',dept:'Pulmonology',  shift:'00:00-08:00',appts:3, status:'off-duty'},
 ];
 
 var bedDataSeed = [
@@ -93,12 +93,9 @@ var tankDataSeed = [
 ];
 
 var patientData = [
-  {name:'William Park',   cond:'Chest pain & SOB',   sev:'critical',prio:1,time:'09:00',status:'waiting',      doctor:'Dr. Mitchell'},
-  {name:'Emma Wilson',    cond:'Diabetic emergency',  sev:'critical',prio:1,time:'08:45',status:'in-treatment', doctor:'Dr. Lee'},
-  {name:'Sarah Thompson', cond:'Fractured femur',     sev:'high',    prio:2,time:'09:30',status:'waiting',      doctor:'Dr. Patel'},
-  {name:'Kevin Chen',     cond:'Appendicitis',        sev:'high',    prio:2,time:'11:00',status:'in-treatment', doctor:'Dr. Sharma'},
-  {name:'Robert Lee',     cond:'Hypertension crisis', sev:'high',    prio:2,time:'10:00',status:'waiting',      doctor:'Dr. Mitchell'},
-  {name:'Diana Martinez', cond:'Migraine with aura',  sev:'moderate',prio:3,time:'10:30',status:'waiting',      doctor:'Dr. Sharma'},
+  {name:'William Park', phone:'919876543210', cond:'Chest pain & SOB', sev:'critical', prio:1, time:'09:00', status:'waiting', doctor:'Dr. Mitchell'},
+  {name:'Emma Wilson',  phone:'919876543211', cond:'Diabetic emergency', sev:'critical', prio:1, time:'08:45', status:'in-treatment', doctor:'Dr. Lee'},
+  // Add phone numbers to the rest of your patients...
 ];
 
 var activities = [
@@ -116,13 +113,6 @@ var issuesSeed = [
   {_id:'iss2',title:'Oxygen cylinders running low — Oncology', description:'Down to 2 active cylinders', department:'Oxygen',     priority:'Critical',created_by:'RECEPTIONIST',status:'pending',  created_at:new Date(Date.now()-45*60000).toISOString()},
   {_id:'iss3',title:'ICU Bed #14 maintenance overdue',    description:'In maintenance for 3 weeks',          department:'ICU',        priority:'Medium',  created_by:'RECEPTIONIST',status:'approved', created_at:new Date(Date.now()-2*3600000).toISOString()},
   {_id:'iss4',title:'AMB-005 needs tyre replacement',     description:'Tyre pressure warning',               department:'Ambulances', priority:'Low',     created_by:'RECEPTIONIST',status:'rejected', created_at:new Date(Date.now()-5*3600000).toISOString()},
-];
-
-// Seed for WhatsApp Reminders (Expiring Consultations)
-var expiringPatientsSeed = [
-  {id: 'P-8802', name: 'Arjun Kumar', free_consult_expiry: new Date(Date.now()+86400000).toISOString().split('T')[0], reminder_sent: false},
-  {id: 'P-8805', name: 'Priya Singh', free_consult_expiry: new Date(Date.now()+172800000).toISOString().split('T')[0], reminder_sent: false},
-  {id: 'P-8812', name: 'Rohan Gupta', free_consult_expiry: new Date(Date.now()+86400000).toISOString().split('T')[0], reminder_sent: false}
 ];
 
 // Mutable variables used across the application state
