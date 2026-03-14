@@ -50,11 +50,6 @@ async function loadSectionData(sectionId) {
   } catch (err) {
     console.warn('[MedCMD] API offline for', sectionId, '—', err.message);
     showToast('Using local data (API offline — ' + sectionId + ')', 'info');
-    
-    // Fallback for the patients/WhatsApp tab
-    if (sectionId === 'patients') {
-        renderExpiringPatients(typeof expiringPatientsSeed !== 'undefined' ? expiringPatientsSeed : []);
-    }
   }
 }
 
@@ -66,9 +61,11 @@ async function loadPredictiveSurge() {
     
     if (banner && data.surge_risk === "High") {
       banner.style.display = 'flex';
+      // Change colors to a warning theme (Amber/Orange)
       banner.style.background = 'linear-gradient(100deg, #fffbeb 0%, #ffffff 80%)';
       banner.style.borderColor = '#fde68a';
       
+      // Inject the AI data into the banner
       banner.innerHTML = `
         <span class="alert-banner-icon" style="animation: pulse-dot 2s infinite;">⚠️</span>
         <div class="alert-banner-text">
@@ -117,12 +114,20 @@ function renderDoctorsTable(docs) {
   var tbody = document.getElementById('doctors-full-tbody');
   if (!tbody) return;
   var isHead = USER_ROLE === 'HEAD';
+  
   tbody.innerHTML = docs.map(function(d) {
     var ini = d.name.split(' ').pop()[0];
     var on  = d.status === 'on-duty';
+    
+    // FOR TESTING: If phone is missing from database, use a placeholder
+    var doctorPhone = d.phone || "919876543210"; 
+    
+    var waBtn = '<button class="btn-sm" style="background:#25D366; color:white; border:none; margin-left:4px; cursor:pointer;" onclick="contactDoctor(\'' + doctorPhone + '\', \'' + d.name + '\')">WhatsApp</button>';
+
     var actions = isHead
-      ? '<button class="btn-sm btn-outline" onclick=\'openEditDoctor(' + JSON.stringify(d) + ')\'>Edit</button><button class="btn-sm btn-danger" onclick="deleteDoctor(\'' + d._id + '\')" style="margin-left:4px;">Delete</button>'
-      : '<span style="font-size:11px;color:var(--n400);">View only</span>';
+      ? '<button class="btn-sm btn-outline" onclick=\'openEditDoctor(' + JSON.stringify(d) + ')\'>Edit</button>' + waBtn + '<button class="btn-sm btn-danger" onclick="deleteDoctor(\'' + d._id + '\')" style="margin-left:4px;">Delete</button>'
+      : waBtn;
+
     return '<tr><td><div class="doc-cell"><div class="doc-avt">' + ini + '</div><span class="doc-name">' + d.name + '</span></div></td>'
       + '<td><span class="dept-pill">' + (d.dept||d.specialization||'') + '</span></td>'
       + '<td style="font-family:\'IBM Plex Mono\';font-size:12px;color:var(--n600);">' + (d.shift||'—') + '</td>'
@@ -131,6 +136,7 @@ function renderDoctorsTable(docs) {
       + '<td>' + actions + '</td></tr>';
   }).join('');
 }
+
 
 function renderAmbGrid(ambs) {
   var grid = document.getElementById('amb-grid');
@@ -171,19 +177,11 @@ function renderTankGrid(tanks) {
       + editBtn + '</div>';
   }).join('');
 }
-
-
-// ── MLC Reports & Document Viewer ───────────────────────────────────
-let _globalMLCReports = [];
-
 function renderMLCReports(reports) {
   var tbody = document.getElementById('mlc-reports-tbody');
   if (!tbody) return;
-  
-  _globalMLCReports = reports; // Store them for the viewer
-
   if (!reports || reports.length === 0) { 
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--n400);font-size:12px;">No MLC reports generated yet</td></tr>'; 
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--n400);font-size:12px;">No MLC reports generated yet</td></tr>'; 
     return; 
   }
 
@@ -197,8 +195,6 @@ function renderMLCReports(reports) {
       ? '<span class="status-chip sc-on" style="background:var(--g50);color:var(--g700);border:1px solid var(--g200);"><span class="sc-dot"></span>Verified</span>'
       : '<span class="status-chip sc-off" style="background:#fffbeb;color:#d97706;border:1px solid #fde68a;"><span class="sc-dot"></span>AI Draft</span>';
 
-    var actionBtn = `<button class="btn-sm btn-outline" onclick="viewMLCDocument('${r.mlc_number}')">📄 View Doc</button>`;
-
     return '<tr>'
       + '<td style="font-family:\'IBM Plex Mono\';font-size:11px;color:var(--n600);">' + (r.mlc_number || '—') + '</td>'
       + '<td style="font-family:\'IBM Plex Mono\';font-size:10.5px;color:var(--n400);">' + dt + '</td>'
@@ -206,134 +202,9 @@ function renderMLCReports(reports) {
       + '<td><span class="dept-pill">' + (r.incident_type || '—') + '</span></td>'
       + '<td><span class="priority-tag ' + (urgencyCls[r.urgency_level] || 'prio-low') + '">' + (r.urgency_level || 'UNKNOWN') + '</span></td>'
       + '<td>' + statHtml + '</td>'
-      + '<td>' + actionBtn + '</td>'
       + '</tr>';
   }).join('');
 }
-
-function viewMLCDocument(mlcNumber) {
-  const reportWrapper = _globalMLCReports.find(r => r.mlc_number === mlcNumber);
-  if (!reportWrapper) return;
-
-  const data = reportWrapper.report_data;
-  const dateStr = new Date(reportWrapper.created_at).toLocaleString('en-IN');
-  
-  let html = `
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-      <tr>
-        <td style="padding: 5px 0;"><strong>MLC Number:</strong> ${reportWrapper.mlc_number}</td>
-        <td style="padding: 5px 0; text-align: right;"><strong>Date/Time:</strong> ${dateStr}</td>
-      </tr>
-      <tr>
-        <td style="padding: 5px 0;"><strong>Status:</strong> ${reportWrapper.status}</td>
-        <td style="padding: 5px 0; text-align: right;"><strong>Urgency:</strong> ${reportWrapper.urgency_level}</td>
-      </tr>
-    </table>
-
-    <div style="border: 1px solid #000; padding: 15px; margin-bottom: 15px;">
-      <h4 style="margin: 0 0 10px 0; text-decoration: underline;">1. PATIENT DEMOGRAPHICS</h4>
-      <p style="margin: 4px 0;"><strong>Name:</strong> ${data.patient_name || 'Unknown'}</p>
-      <p style="margin: 4px 0;"><strong>Age:</strong> ${data.age || 'Unknown'} | <strong>Gender:</strong> ${data.gender || 'Unknown'}</p>
-      <p style="margin: 4px 0;"><strong>Attendant:</strong> ${data.attendant || 'None'}</p>
-    </div>
-
-    <div style="border: 1px solid #000; padding: 15px; margin-bottom: 15px;">
-      <h4 style="margin: 0 0 10px 0; text-decoration: underline;">2. INCIDENT DETAILS</h4>
-      <p style="margin: 4px 0;"><strong>Type:</strong> ${data.incident_type || 'Unknown'}</p>
-      <p style="margin: 4px 0;"><strong>Location:</strong> ${data.incident_location || 'Unknown'}</p>
-      <p style="margin: 4px 0;"><strong>Transported By:</strong> ${data.transported_by || 'Unknown'} (Call Time: ${data.time_of_call || 'Unknown'})</p>
-      <p style="margin: 4px 0;"><strong>Police Informed:</strong> ${data.police_informed || 'Unknown'}</p>
-    </div>
-
-    <div style="border: 1px solid #000; padding: 15px; margin-bottom: 15px;">
-      <h4 style="margin: 0 0 10px 0; text-decoration: underline;">3. CLINICAL OBSERVATIONS</h4>
-      <p style="margin: 4px 0;"><strong>Vitals:</strong> Consciousness (${data.vital_signs?.consciousness || 'Unknown'}), 
-         Bleeding (${data.vital_signs?.bleeding || 'Unknown'}), 
-         Breathing (${data.vital_signs?.breathing || 'Unknown'})</p>
-      <p style="margin: 4px 0;"><strong>Chief Complaints:</strong> ${(data.chief_complaints || []).join(', ')}</p>
-      <p style="margin: 4px 0;"><strong>Visible Injuries:</strong> ${(data.visible_injuries || []).join(', ')}</p>
-      <p style="margin: 4px 0; margin-top: 10px;"><strong>Additional Notes:</strong><br/> ${data.additional_notes || 'None'}</p>
-    </div>
-  `;
-
-  document.getElementById('mlc-doc-content').innerHTML = html;
-  document.getElementById('mlc-doc-nurse').innerText = reportWrapper.verified_by || 'Not Verified';
-  
-  openModal('modal-mlc-doc');
-}
-
-function printMLC() {
-  const printContent = document.getElementById('mlc-print-area').innerHTML;
-  const originalContent = document.body.innerHTML;
-
-  document.body.innerHTML = printContent;
-  window.print();
-  
-  document.body.innerHTML = originalContent;
-  window.location.reload(); 
-}
-
-
-// ── WhatsApp Reminders (Expiring Consultations) ─────────────────────
-let _expiringPatientIds = [];
-
-function renderExpiringPatients(patients) {
-  var tbody = document.getElementById('expiring-patients-tbody');
-  if (!tbody) return;
-  
-  if (!patients || patients.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:32px;color:var(--n400);font-size:12px;">No expiring consultations</td></tr>';
-    _expiringPatientIds = [];
-    return;
-  }
-  
-  // Store IDs for the WhatsApp button
-  _expiringPatientIds = patients.map(p => p.id);
-  
-  tbody.innerHTML = patients.map(function(p) {
-    var statusHtml = p.reminder_sent 
-      ? '<span class="status-chip sc-on" style="background:var(--g50);color:var(--g700);border:1px solid var(--g200);">Sent</span>'
-      : '<span class="status-chip sc-off" style="background:#fffbeb;color:#d97706;border:1px solid #fde68a;">Pending</span>';
-    
-    return '<tr>'
-      + '<td style="font-family:\'IBM Plex Mono\';font-size:11px;color:var(--n400);">' + (p.id || '—') + '</td>'
-      + '<td style="font-weight:600;color:var(--n800);">' + (p.name || 'Unknown') + '</td>'
-      + '<td style="font-family:\'IBM Plex Mono\';font-size:11px;color:var(--n500);">' + (p.free_consult_expiry || '—') + '</td>'
-      + '<td>' + statusHtml + '</td>'
-      + '</tr>';
-  }).join('');
-}
-
-async function sendWhatsAppReminders() {
-  if (!_expiringPatientIds || _expiringPatientIds.length === 0) {
-    showToast('No pending reminders to send', 'info');
-    return;
-  }
-  try {
-    await apiFetch('/api/patients/send-reminders', {
-      method: 'POST',
-      body: JSON.stringify({ patient_ids: _expiringPatientIds })
-    });
-    showToast('WhatsApp reminders sent successfully!', 'success');
-    loadSectionData('patients'); // Refreshes the list from Supabase
-  } catch (err) {
-    showToast('Sent locally — API offline', 'info');
-    
-    // Fallback UI update if API fails
-    var tbody = document.getElementById('expiring-patients-tbody');
-    if (tbody) {
-       var rows = tbody.getElementsByTagName('tr');
-       for(var i=0; i<rows.length; i++) {
-          var statusCell = rows[i].cells[3];
-          if(statusCell && !statusCell.innerHTML.includes('Sent')) {
-              statusCell.innerHTML = '<span class="status-chip sc-on" style="background:var(--g50);color:var(--g700);border:1px solid var(--g200);">Sent</span>';
-          }
-       }
-    }
-    _expiringPatientIds = [];
-  }
-}
-
 
 // ── CRUD Logic ──────────────────────────────────────────────────────
 async function submitICUBed() {
@@ -570,20 +441,28 @@ window.addEventListener('DOMContentLoaded', function() {
   }
 
   var ptbody = document.getElementById('patients-tbody');
-  if (ptbody) {
-    var sevStyle = {critical:'background:#fef2f2;color:#ef4444;',high:'background:#fff7ed;color:#f97316;',moderate:'background:#fffbeb;color:#f59e0b;',low:'background:#f0fdf4;color:#16a344;'};
-    var stStyle  = {'waiting':'background:var(--n100);color:var(--n600);','in-treatment':'background:#f0fdfa;color:#0d9488;','discharged':'background:var(--g50);color:var(--g700);'};
-    patientData.forEach(function(p) {
-      ptbody.innerHTML += '<tr>'
-        + '<td><span class="prio-badge prio-' + p.prio + '">' + p.prio + '</span></td>'
-        + '<td style="font-weight:600;color:var(--n700);">' + p.name + '</td>'
-        + '<td style="color:var(--n500);font-size:12px;">' + p.cond + '</td>'
-        + '<td><span class="status-chip" style="' + sevStyle[p.sev] + 'border:none;">' + p.sev.charAt(0).toUpperCase()+p.sev.slice(1) + '</span></td>'
-        + '<td style="font-family:\'IBM Plex Mono\';font-size:12px;color:var(--n500);">' + p.time + '</td>'
-        + '<td><span class="status-chip" style="' + stStyle[p.status] + 'border:none;">' + (p.status==='in-treatment'?'In Treatment':p.status.charAt(0).toUpperCase()+p.status.slice(1)) + '</span></td>'
-        + '<td style="font-size:12px;color:var(--n500);">' + p.doctor + '</td></tr>';
-    });
-  }
+    if (ptbody) {
+      var sevStyle = {critical:'background:#fef2f2;color:#ef4444;',high:'background:#fff7ed;color:#f97316;',moderate:'background:#fffbeb;color:#f59e0b;',low:'background:#f0fdf4;color:#16a344;'};
+      var stStyle  = {'waiting':'background:var(--n100);color:var(--n600);','in-treatment':'background:#f0fdfa;color:#0d9488;','discharged':'background:var(--g50);color:var(--g700);'};
+      
+      ptbody.innerHTML = ''; // Clear existing
+      patientData.forEach(function(p) {
+        // Create a unique message for patients
+        var patientMsg = "Hello " + p.name + ", this is from the hospital reception. Your consultation with " + p.doctor + " is scheduled soon. Please be ready.";
+        
+        ptbody.innerHTML += '<tr>'
+          + '<td><span class="prio-badge prio-' + p.prio + '">' + p.prio + '</span></td>'
+          + '<td style="font-weight:600;color:var(--n700);">' 
+              + p.name 
+              + ' <span style="cursor:pointer;margin-left:5px;" title="Message Patient" onclick="contactPerson(\'' + (p.phone||'') + '\', \'' + p.name + '\', \'' + patientMsg + '\')">💬</span>'
+          + '</td>'
+          + '<td style="color:var(--n500);font-size:12px;">' + p.cond + '</td>'
+          + '<td><span class="status-chip" style="' + sevStyle[p.sev] + 'border:none;">' + p.sev.charAt(0).toUpperCase()+p.sev.slice(1) + '</span></td>'
+          + '<td style="font-family:\'IBM Plex Mono\';font-size:12px;color:var(--n500);">' + p.time + '</td>'
+          + '<td><span class="status-chip" style="' + stStyle[p.status] + 'border:none;">' + (p.status==='in-treatment'?'In Treatment':p.status.charAt(0).toUpperCase()+p.status.slice(1)) + '</span></td>'
+          + '<td style="font-size:12px;color:var(--n500);">' + p.doctor + '</td></tr>';
+      });
+    }
 
   if (typeof Chart !== 'undefined') {
     Chart.defaults.font.family = "'DM Sans', system-ui, sans-serif";
@@ -617,3 +496,30 @@ window.addEventListener('DOMContentLoaded', function() {
   loadPredictiveSurge();
   if (USER_ROLE === 'HEAD') loadIssues();
 });
+
+
+/* ── WhatsApp Integration Logic ────────────────────────────────────── */
+function contactDoctor(phone, name) {
+  // 1. Validation: Check if phone exists
+  if (!phone || phone === 'undefined' || phone === '') {
+    showToast('No phone number linked for Dr. ' + name, 'error');
+    return;
+  }
+
+  // 2. First Principles: Sanitize the input
+  // We remove any non-digit characters (like +, -, or spaces) 
+  // because the WhatsApp API only accepts a clean string of numbers.
+  var cleanNumber = phone.toString().replace(/\D/g, '');
+
+  // 3. Construct the Message
+  // We use encodeURIComponent so that spaces and punctuation don't break the URL.
+  var message = "Hello Dr. " + name + ", this is an update from the Statsyc VEGA AI dashboard regarding the current hospital status.";
+  var encodedMsg = encodeURIComponent(message);
+
+  // 4. Trigger the Protocol
+  // 'https://wa.me/' is the universal link that works on Mobile and Desktop.
+  var whatsappUrl = "https://wa.me/" + cleanNumber + "?text=" + encodedMsg;
+
+  // Open in a new tab to keep the dashboard running in the background
+  window.open(whatsappUrl, '_blank');
+}

@@ -274,27 +274,10 @@
               <div class="stat-card" data-emoji="👤"><div class="stat-top-row"><div class="stat-icon si-sky">👤</div></div><div class="stat-value">6</div><div class="stat-label">Waiting</div><div class="stat-sub">In queue</div></div>
               <div class="stat-card" data-emoji="💊"><div class="stat-top-row"><div class="stat-icon si-green">💊</div></div><div class="stat-value">2</div><div class="stat-label">In Treatment</div><div class="stat-sub">Being seen now</div></div>
             </div>
-            
             <div class="card">
               <div class="table-hd"><div class="section-title" style="font-size:13px;">Active Queue</div></div>
               <div class="tbl-wrap"><table><thead><tr><th>Priority</th><th>Patient</th><th>Condition</th><th>Severity</th><th>Appt. Time</th><th>Status</th><th>Doctor</th></tr></thead><tbody id="patients-tbody"></tbody></table></div>
             </div>
-
-            <div class="card" style="margin-top: 20px;">
-              <div class="table-hd">
-                <div class="section-title" style="font-size:13px;">Expiring Free Consultations</div>
-                <button class="btn-primary head-only" style="background:#25D366; border-color:#25D366; gap:6px;" onclick="sendWhatsAppReminders()">
-                  💬 Send WhatsApp Reminders
-                </button>
-              </div>
-              <div class="tbl-wrap">
-                <table>
-                  <thead><tr><th>Patient ID</th><th>Name</th><th>Expiry Date</th><th>WhatsApp Status</th></tr></thead>
-                  <tbody id="expiring-patients-tbody"></tbody>
-                </table>
-              </div>
-            </div>
-            
           </div>
         </div>
       </section>
@@ -341,6 +324,7 @@
             </div>
           </div>
           
+          <!-- NEW: MLC AI REPORTS TABLE -->
           <div class="card" style="margin-top: 10px;">
             <div class="table-hd"><div class="section-title">Recent Medico-Legal Cases (MLC) - AI Scribe</div></div>
             <div class="tbl-wrap">
@@ -353,14 +337,15 @@
                     <th>Incident Type</th>
                     <th>Urgency</th>
                     <th>Status</th>
-                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody id="mlc-reports-tbody">
-                  </tbody>
+                  <!-- JS injects here -->
+                </tbody>
               </table>
             </div>
           </div>
+          <!-- END NEW TABLE -->
           
         </div>
       </section>
@@ -526,42 +511,6 @@
       </div>
     </div>
     <div class="modal-footer"><button class="btn-sm btn-outline" onclick="closeModal('modal-oxygen')">Cancel</button><button class="btn-primary" onclick="submitOxygen()">Save</button></div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="modal-mlc-doc">
-  <div class="modal-box" style="max-width: 650px;">
-    <div class="modal-hd">
-      <div class="modal-title">Official MLC Document</div>
-      <button class="modal-close" onclick="closeModal('modal-mlc-doc')">✕</button>
-    </div>
-    <div class="modal-body" id="mlc-print-area" style="background: #fff; padding: 30px; color: #000; font-family: 'Times New Roman', serif;">
-      
-      <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
-        <h2 style="margin: 0; font-size: 22px; text-transform: uppercase;">City General Hospital</h2>
-        <p style="margin: 5px 0 0; font-size: 14px;">Emergency & Trauma Department</p>
-        <h3 style="margin: 15px 0 0; font-size: 18px; text-decoration: underline;">MEDICO-LEGAL CASE (MLC) REPORT</h3>
-      </div>
-
-      <div id="mlc-doc-content" style="font-size: 14px; line-height: 1.6;"></div>
-      
-      <div style="margin-top: 50px; display: flex; justify-content: space-between;">
-        <div style="text-align: center;">
-          <div style="border-bottom: 1px solid #000; width: 150px; margin-bottom: 5px;"></div>
-          <strong>Attending Nurse</strong><br/>
-          <span id="mlc-doc-nurse"></span>
-        </div>
-        <div style="text-align: center;">
-          <div style="border-bottom: 1px solid #000; width: 150px; margin-bottom: 5px;"></div>
-          <strong>CMO / Head Auth</strong>
-        </div>
-      </div>
-      
-    </div>
-    <div class="modal-footer">
-      <button class="btn-sm btn-outline" onclick="closeModal('modal-mlc-doc')">Close</button>
-      <button class="btn-primary" onclick="printMLC()">🖨️ Print / Save PDF</button>
-    </div>
   </div>
 </div>
 
