@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>StatSync — Virtual Ear</title>
+<style>
+  :root {
+    --bg: #060911; --bg2: #0c1220; --bg3: #080f1a;
+    --border: #1a2d40; --border2: #142030;
+    --text: #c8d6e5; --text2: #7aaccc; --text3: #3a6a8a;
+    --red: #ff2d2d; --orange: #ff8c00; --yellow: #f0c040;
+    --green: #4ade80; --blue: #2a7ab0; --bluelight: #5aaad0;
+    --font: 'Courier New', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+  /* scanlines */
+  body::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 999;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+  }
+
+  header {
+    position: sticky; top: 0; z-index: 100; background: rgba(6,9,17,0.97);
+    border-bottom: 1px solid var(--border); padding: 14px 28px;
+    display: flex; align-items: center; justify-content: space-between; backdrop-filter: blur(10px);
+  }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border); transition: all .3s; }
+  .dot.live { background: var(--red); box-shadow: 0 0 12px var(--red); animation: blink 1s infinite; }
+  .logo-text { font-size: 18px; font-weight: 700; letter-spacing: .2em; color: #e2eaf2; }
+  .logo-sub { font-size: 11px; color: var(--text3); letter-spacing: .15em; }
+  .timer { font-size: 13px; color: #ff6060; display: none; }
+  .timer.active { display: block; }
+  .version { font-size: 11px; color: #1a3a5a; letter-spacing: .1em; }
+
+  main { padding: 24px 28px; max-width: 1100px; margin: 0 auto; }
+
+  .panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+  .label { font-size: 10px; color: var(--text3); letter-spacing: .2em; margin-bottom: 6px; text-transform: uppercase; }
+
+  /* Control Panel */
+  .control { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; }
+  .mic-btn {
+    width: 90px; height: 90px; border-radius: 50%; border: none; cursor: pointer; flex-shrink: 0;
+    background: radial-gradient(circle, #1a3a5c 0%, #0a1a2c 70%);
+    box-shadow: 0 0 20px rgba(30,80,120,.3); transition: all .15s ease;
+    font-size: 28px; display: flex; align-items: center; justify-content: center;
+  }
+  .mic-btn.recording {
+    background: radial-gradient(circle, #8b0000 0%, #3d0000 70%);
+    box-shadow: 0 0 30px rgba(255,45,45,.5), 0 0 60px rgba(255,45,45,.2);
+    animation: pulse 1s ease-in-out infinite;
+  }
+  .mic-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .status-area { flex: 1; }
+  .status-label { font-size: 12px; color: var(--bluelight); letter-spacing: .1em; margin-bottom: 6px; }
+  .status-main { font-size: 20px; font-weight: 700; letter-spacing: .05em; color: var(--text3); }
+  .status-main.active { color: #ff6060; }
+  .waveform { display: flex; gap: 3px; height: 28px; align-items: flex-end; margin-top: 10px; display: none; }
+  .waveform.show { display: flex; }
+  .wave-bar { width: 4px; border-radius: 2px; background: rgba(255,60,60,.7); animation: wave .4s ease infinite; }
+
+  /* Error banner */
+  .error-box { padding: 10px 16px; background: rgba(180,30,30,.15); border: 1px solid #5a1a1a; border-radius: 6px; font-size: 12px; color: #ff8080; margin-top: 14px; display: none; }
+  .error-box.show { display: block; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 4px; margin-bottom: 0; }
+  .tab-btn {
+    padding: 8px 20px; border: none; cursor: pointer; font-family: var(--font);
+    font-size: 12px; letter-spacing: .1em; text-transform: uppercase;
+    background: transparent; color: var(--text3);
+    border-bottom: 2px solid transparent; border-radius: 6px 6px 0 0;
+    transition: all .2s;
+  }
+  .tab-btn.active { background: var(--bg2); color: var(--bluelight); border-bottom-color: var(--blue); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* Transcript */
+  .transcript-box { font-size: 14px; line-height: 1.8; color: #a0c0d8; padding: 20px; background: var(--bg2); border: 1px solid var(--border); border-radius: 0 12px 12px 12px; min-height: 100px; }
+  .interim { color: var(--text3); font-style: italic; }
+
+  /* Processing */
+  .processing { text-align: center; padding: 40px; }
+  .processing-icon { font-size: 32px; animation: spin 2s linear infinite; display: inline-block; }
+  .processing-label { font-size: 13px; color: #4a8aaa; letter-spacing: .2em; margin-top: 14px; }
+
+  /* MLC Report */
+  .mlc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+  .mlc-number { font-size: 22px; font-weight: 700; color: #e2eaf2; letter-spacing: .05em; }
+  .urgency-badge {
+    padding: 8px 20px; border-radius: 20px; font-size: 13px; font-weight: 700; letter-spacing: .15em;
+  }
+  .warn-banner, .ok-banner {
+    padding: 10px 16px; border-radius: 6px; font-size: 12px; margin-bottom: 18px;
+  }
+  .warn-banner { background: rgba(255,160,0,.08); border: 1px solid rgba(255,160,0,.3); color: #ffb830; }
+  .ok-banner { background: rgba(74,222,128,.08); border: 1px solid rgba(74,222,128,.3); color: #4ade80; display: none; }
+
+  .fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .field-group { display: flex; flex-direction: column; gap: 4px; }
+  .field-label { font-size: 10px; color: var(--text3); letter-spacing: .15em; }
+  .field-input {
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 5px;
+    padding: 8px 10px; color: #a0c0d8; font-size: 13px; font-family: var(--font);
+    width: 100%; transition: border .2s;
+  }
+  .field-input:focus { outline: none; border-color: var(--blue); }
+  .field-input:disabled { opacity: .6; }
+
+  .vitals-box { margin-top: 16px; padding: 16px; background: var(--bg3); border-radius: 8px; border: 1px solid var(--border2); }
+  .vitals-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 10px; }
+
+  .tags-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .tag-injury { padding: 4px 12px; background: rgba(220,60,60,.12); border: 1px solid rgba(220,60,60,.3); border-radius: 20px; font-size: 12px; color: #ff9090; }
+  .tag-complaint { padding: 4px 12px; background: rgba(60,120,220,.12); border: 1px solid rgba(60,120,220,.3); border-radius: 20px; font-size: 12px; color: #88b8f0; }
+
+  .notes-area {
+    width: 100%; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 6px; padding: 10px 12px; color: #a0c0d8; font-size: 13px;
+    font-family: var(--font); resize: vertical; margin-top: 10px;
+  }
+  .notes-area:focus { outline: none; border-color: var(--blue); }
+
+  /* Nurse verify section */
+  .verify-section { margin-top: 20px; padding: 16px; background: rgba(74,222,128,.04); border: 1px solid rgba(74,222,128,.15); border-radius: 8px; }
+  .nurse-input {
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 5px;
+    padding: 8px 12px; color: #a0c0d8; font-family: var(--font); font-size: 13px;
+    width: 240px; margin-right: 12px;
+  }
+  .nurse-input:focus { outline: none; border-color: var(--green); }
+
+  .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-family: var(--font); font-size: 12px; letter-spacing: .1em; transition: opacity .2s; }
+  .btn:hover { opacity: .85; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text3); }
+  .btn-verify { background: rgba(74,222,128,.15); border: 1px solid var(--green); color: var(--green); font-weight: 700; }
+  .btn-regen { background: transparent; border: 1px solid var(--blue); color: var(--bluelight); }
+
+  /* Steps guide */
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 24px; }
+  .step-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .step-num { font-size: 10px; color: var(--text3); letter-spacing: .2em; margin-bottom: 8px; }
+  .step-icon { font-size: 22px; margin-bottom: 8px; }
+  .step-title { font-size: 14px; color: var(--text2); font-weight: 700; margin-bottom: 6px; }
+  .step-desc { font-size: 12px; color: var(--text3); line-height: 1.6; }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+  @keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.06)} }
+  @keyframes wave { 0%,100%{height:30%} 50%{height:90%} }
+  @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+
+  @media (max-width: 600px) {
+    .fields-grid, .vitals-grid, .steps { grid-template-columns: 1fr; }
+    main { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="dot" id="liveDot"></div>
+    <span class="logo-text">VIRTUAL EAR</span>
+    <span class="logo-sub">// MLC AUTO-DRAFT</span>
+  </div>
+  <div style="display:flex;gap:20px;align-items:center">
+    <span class="timer" id="timerDisplay">⏱ 00:00</span>
+    <span class="version">StatSync v1.0</span>
+  </div>
+</header>
+
+<main>
+  <div class="panel">
+    <div class="control">
+      <button class="mic-btn" id="micBtn" onclick="toggleRecording()">🎙</button>
+      <div class="status-area">
+        <div class="status-label" id="statusLabel">▷ PRESS TO BEGIN RECORDING CALL</div>
+        <div class="status-main" id="statusMain">STANDBY</div>
+        <div class="waveform" id="waveform">
+          </div>
+      </div>
+      <button class="btn btn-regen" id="regenBtn" style="display:none" onclick="regenerate()">↻ RE-GENERATE</button>
+    </div>
+    <div class="error-box" id="errorBox"></div>
+  </div>
+
+  <div id="tabsArea" style="display:none">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('transcript', this)">📻 Raw Transcript</button>
+      <button class="tab-btn" onclick="switchTab('report', this)">📋 MLC Draft Report</button>
+    </div>
+
+    <div class="tab-content active" id="tab-transcript">
+      <div class="transcript-box" id="transcriptBox">
+        <span id="finalText"></span><span class="interim" id="interimText"></span>
+      </div>
+    </div>
+
+    <div class="tab-content" id="tab-report">
+      <div class="processing" id="processingBox" style="display:none">
+        <span class="processing-icon">⚙</span>
+        <div class="processing-label">AI PARSING TRANSCRIPT → MLC DRAFT...</div>
+      </div>
+
+      <div id="mlcForm" style="display:none" class="panel" style="margin-bottom:0">
+        <div class="mlc-header">
+          <div>
+            <div class="label">MEDICO-LEGAL CASE REPORT</div>
+            <div class="mlc-number" id="mlcNumber">—</div>
+          </div>
+          <div class="urgency-badge" id="urgencyBadge">—</div>
+        </div>
+
+        <div class="warn-banner" id="warnBanner">⚠ AI DRAFT — PROVISIONAL. All fields are editable. Nurse must verify before submission.</div>
+        <div class="ok-banner" id="okBanner">✓ VERIFIED — Cleared for hospital records.</div>
+
+        <div class="fields-grid" id="fieldsGrid"></div>
+
+        <div class="vitals-box">
+          <div class="label">VITAL SIGNS (REPORTED)</div>
+          <div class="vitals-grid" id="vitalsGrid"></div>
+        </div>
+
+        <div style="margin-top:14px">
+          <div class="label">VISIBLE INJURIES</div>
+          <div class="tags-row" id="injuriesTags"></div>
+        </div>
+        <div style="margin-top:14px">
+          <div class="label">CHIEF COMPLAINTS</div>
+          <div class="tags-row" id="complaintsTags"></div>
+        </div>
+        <div style="margin-top:14px">
+          <div class="label">ADDITIONAL NOTES</div>
+          <textarea class="notes-area" id="notesField" rows="3"></textarea>
+        </div>
+
+        <div class="verify-section" id="verifySection">
+          <div class="label" style="margin-bottom:10px">NURSE VERIFICATION</div>
+          <input class="nurse-input" id="nurseInput" type="text" placeholder="Enter nurse name..." />
+          <button class="btn btn-verify" onclick="verifyMLC()">✓ VERIFY & SUBMIT</button>
+          <button class="btn btn-ghost" style="margin-left:8px" onclick="discardReport()">DISCARD</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="steps" id="stepsGuide">
+    <div class="step-card">
+      <div class="step-num">STEP 01</div>
+      <div class="step-icon">🎙</div>
+      <div class="step-title">Record Call</div>
+      <div class="step-desc">Press the mic button and narrate the ambulance call details aloud. Note: Please use Chrome/Edge for mic access.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">STEP 02</div>
+      <div class="step-icon">⚙</div>
+      <div class="step-title">AI Drafts MLC</div>
+      <div class="step-desc">Virtual Ear sends transcript to Claude AI which extracts and fills all MLC fields instantly.</div>
+    </div>
+    <div class="step-card">
+      <div class="step-num">STEP 03</div>
+      <div class="step-icon">✓</div>
+      <div class="step-title">Nurse Verifies</div>
+      <div class="step-desc">Review every field, correct if needed, sign your name and verify — saves to Supabase.</div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// IMPORTANT: Points to your local FastAPI server
+const API_BASE_URL = 'https://statsync-kese.onrender.com';
+
+// ─── State ────────────────────────────────────────────────────────────────────
+let recognition = null;
+let isRecording = false;
+let finalTranscript = "";
+let interimTranscript = "";
+let timerInterval = null;
+let timerSeconds = 0;
+let currentMLC = null;
+let waveInterval = null;
+
+// ─── Recording ────────────────────────────────────────────────────────────────
+function toggleRecording() {
+  if (isRecording) stopRecording();
+  else startRecording();
+}
+
+function startRecording() {
+  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showError("Speech recognition not supported. Please use Google Chrome or Microsoft Edge.");
+    return;
+  }
+  showError("");
+  finalTranscript = "";
+  interimTranscript = "";
+  document.getElementById('finalText').textContent = "";
+  document.getElementById('interimText').textContent = "";
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SR();
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.lang = "en-IN";
+
+  recognition.onresult = (e) => {
+    let final = "", interim = "";
+    for (let i = 0; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript + " ";
+      else interim += e.results[i][0].transcript;
+    }
+    finalTranscript = final;
+    interimTranscript = interim;
+    document.getElementById('finalText').textContent = final;
+    document.getElementById('interimText').textContent = interim;
+  };
+
+  recognition.onerror = (e) => {
+    if(e.error === 'not-allowed') {
+        showError("Mic access blocked. Please click the camera/mic icon in your browser URL bar and allow access.");
+    } else {
+        showError("Mic error: " + e.error);
+    }
+    stopRecording();
+  };
+
+  recognition.start();
+  isRecording = true;
+  timerSeconds = 0;
+  timerInterval = setInterval(() => {
+    timerSeconds++;
+    document.getElementById('timerDisplay').textContent = "⏱ " + fmt(timerSeconds);
+  }, 1000);
+
+  setUIState("recording");
+}
+
+async function stopRecording() {
+  if (recognition) recognition.stop();
+  isRecording = false;
+  clearInterval(timerInterval);
+  setUIState("processing");
+
+  const full = (finalTranscript + interimTranscript).trim();
+  if (full.length < 5) {
+    showError("Not enough speech detected. Please try again.");
+    setUIState("idle");
+    return;
+  }
+  await generateMLC(full);
+}
+
+// ─── API Calls ────────────────────────────────────────────────────────────────
+async function generateMLC(transcript) {
+  switchTab('report', document.querySelectorAll('.tab-btn')[1]);
+  document.getElementById('processingBox').style.display = 'block';
+  document.getElementById('mlcForm').style.display = 'none';
+
+  try {
+    const res = await fetch(API_BASE_URL + '/api/generate-mlc', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ transcript })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Server error');
+    }
+    const data = await res.json();
+    currentMLC = data.report;
+    renderMLC(data.report);
+    setUIState("done");
+  } catch (e) {
+    showError("Failed to generate MLC. Is your Python server running? Error: " + e.message);
+    setUIState("idle");
+  } finally {
+    document.getElementById('processingBox').style.display = 'none';
+  }
+}
+
+async function verifyMLC() {
+  const nurseName = document.getElementById('nurseInput').value.trim();
+  if (!nurseName) { alert("Please enter nurse name."); return; }
+  if (!currentMLC) return;
+
+  // Collect edited values back
+  document.querySelectorAll('.field-input[data-key]').forEach(input => {
+    const key = input.dataset.key;
+    if (key.includes('.')) {
+      const [parent, child] = key.split('.');
+      if (!currentMLC[parent]) currentMLC[parent] = {};
+      currentMLC[parent][child] = input.value;
+    } else {
+      currentMLC[key] = input.value;
+    }
+  });
+  currentMLC.additional_notes = document.getElementById('notesField').value;
+
+  try {
+    const res = await fetch(API_BASE_URL + '/api/verify-mlc', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mlc_number: currentMLC.mlc_number,
+        report: currentMLC,
+        nurse_name: nurseName
+      })
+    });
+    if (!res.ok) throw new Error((await res.json()).detail);
+    document.getElementById('warnBanner').style.display = 'none';
+    document.getElementById('okBanner').style.display = 'block';
+    document.getElementById('verifySection').style.display = 'none';
+    document.querySelectorAll('.field-input').forEach(i => i.disabled = true);
+    document.getElementById('notesField').disabled = true;
+    document.getElementById('regenBtn').style.display = 'none';
+  } catch(e) {
+    alert("Verification failed: " + e.message);
+  }
+}
+
+async function regenerate() {
+  if (finalTranscript) await generateMLC(finalTranscript);
+}
+
+// ─── Render MLC ───────────────────────────────────────────────────────────────
+const URGENCY_COLORS = { CRITICAL:'#ff2d2d', HIGH:'#ff8c00', MODERATE:'#f0c040', LOW:'#4ade80' };
+
+function renderMLC(r) {
+  document.getElementById('mlcNumber').textContent = r.mlc_number;
+  const ub = document.getElementById('urgencyBadge');
+  const uc = URGENCY_COLORS[r.urgency_level] || '#888';
+  ub.textContent = r.urgency_level;
+  ub.style.cssText = `padding:8px 20px;border-radius:20px;font-size:13px;font-weight:700;letter-spacing:.15em;background:${uc}22;border:1px solid ${uc};color:${uc}`;
+
+  // Main fields
+  const mainFields = [
+    ['Patient Name','patient_name'],['Age','age'],['Gender','gender'],
+    ['Time of Call','time_of_call'],['Incident Type','incident_type'],
+    ['Location','incident_location'],['Transported By','transported_by'],
+    ['Attendant','attendant'],['Police Informed','police_informed']
+  ];
+  document.getElementById('fieldsGrid').innerHTML = mainFields.map(([lbl, key]) =>
+    `<div class="field-group">
+      <div class="field-label">${lbl.toUpperCase()}</div>
+      <input class="field-input" data-key="${key}" value="${r[key] || ''}" />
+    </div>`
+  ).join('');
+
+  // Vitals
+  const vitals = [['Consciousness','consciousness'],['Bleeding','bleeding'],['Breathing','breathing']];
+  document.getElementById('vitalsGrid').innerHTML = vitals.map(([lbl, key]) =>
+    `<div class="field-group">
+      <div class="field-label">${lbl.toUpperCase()}</div>
+      <input class="field-input" data-key="vital_signs.${key}" value="${(r.vital_signs||{})[key]||''}" />
+    </div>`
+  ).join('');
+
+  // Tags
+  document.getElementById('injuriesTags').innerHTML = (r.visible_injuries||[]).map(i =>
+    `<span class="tag-injury">${i}</span>`).join('');
+  document.getElementById('complaintsTags').innerHTML = (r.chief_complaints||[]).map(c =>
+    `<span class="tag-complaint">${c}</span>`).join('');
+
+  document.getElementById('notesField').value = r.additional_notes || '';
+  document.getElementById('okBanner').style.display = 'none';
+  document.getElementById('warnBanner').style.display = 'block';
+  document.getElementById('verifySection').style.display = 'block';
+  document.getElementById('nurseInput').value = '';
+  document.querySelectorAll('.field-input').forEach(i => i.disabled = false);
+  document.getElementById('notesField').disabled = false;
+  document.getElementById('mlcForm').style.display = 'block';
+}
+
+function discardReport() {
+  currentMLC = null;
+  document.getElementById('mlcForm').style.display = 'none';
+  document.getElementById('tabsArea').style.display = 'none';
+  document.getElementById('stepsGuide').style.display = 'grid';
+  finalTranscript = '';
+  setUIState('idle');
+}
+
+// ─── UI State Machine ─────────────────────────────────────────────────────────
+function setUIState(state) {
+  const btn = document.getElementById('micBtn');
+  const dot = document.getElementById('liveDot');
+  const label = document.getElementById('statusLabel');
+  const main = document.getElementById('statusMain');
+  const wf = document.getElementById('waveform');
+  const timer = document.getElementById('timerDisplay');
+  const regen = document.getElementById('regenBtn');
+  const tabs = document.getElementById('tabsArea');
+  const steps = document.getElementById('stepsGuide');
+
+  if (state === 'recording') {
+    btn.className = 'mic-btn recording'; btn.textContent = '⏹';
+    dot.className = 'dot live';
+    label.textContent = '▶ RECORDING AMBULANCE CALL...';
+    main.textContent = 'LIVE — CAPTURING AUDIO'; main.className = 'status-main active';
+    timer.className = 'timer active';
+    wf.className = 'waveform show'; renderWaveBars();
+    tabs.style.display = 'block'; steps.style.display = 'none';
+    switchTab('transcript', document.querySelectorAll('.tab-btn')[0]);
+    regen.style.display = 'none';
+  } else if (state === 'processing') {
+    btn.className = 'mic-btn'; btn.textContent = '⚙'; btn.disabled = true;
+    dot.className = 'dot';
+    label.textContent = '▶ PROCESSING → MLC DRAFT';
+    main.textContent = 'GENERATING REPORT...'; main.className = 'status-main active';
+    wf.className = 'waveform'; clearWaveBars();
+  } else if (state === 'done') {
+    btn.className = 'mic-btn'; btn.textContent = '🎙'; btn.disabled = false;
+    dot.className = 'dot';
+    label.textContent = '▷ CALL ENDED — REPORT READY';
+    main.textContent = 'READY'; main.className = 'status-main';
+    regen.style.display = 'inline-block';
+  } else { // idle
+    btn.className = 'mic-btn'; btn.textContent = '🎙'; btn.disabled = false;
+    dot.className = 'dot';
+    label.textContent = '▷ PRESS TO BEGIN RECORDING CALL';
+    main.textContent = 'STANDBY'; main.className = 'status-main';
+    wf.className = 'waveform'; clearWaveBars();
+    timer.className = 'timer';
+    regen.style.display = 'none';
+  }
+}
+
+function renderWaveBars() {
+  const wf = document.getElementById('waveform');
+  wf.innerHTML = Array.from({length:28}, (_,i) =>
+    `<div class="wave-bar" style="animation-delay:${i*0.04}s"></div>`
+  ).join('');
+}
+function clearWaveBars() { document.getElementById('waveform').innerHTML = ''; }
+
+// ─── Tabs ─────────────────────────────────────────────────────────────────────
+function switchTab(name, btnEl) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  if (btnEl) btnEl.classList.add('active');
+  const tc = document.getElementById('tab-' + name);
+  if (tc) tc.classList.add('active');
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function showError(msg) {
+  const el = document.getElementById('errorBox');
+  el.textContent = msg ? '⚠ ' + msg : '';
+  el.className = msg ? 'error-box show' : 'error-box';
+}
+function fmt(s) { return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0'); }
+</script>
+</body>
+</html>
