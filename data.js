@@ -118,6 +118,13 @@ var issuesSeed = [
   {_id:'iss4',title:'AMB-005 needs tyre replacement',     description:'Tyre pressure warning',               department:'Ambulances', priority:'Low',     created_by:'RECEPTIONIST',status:'rejected', created_at:new Date(Date.now()-5*3600000).toISOString()},
 ];
 
+// Seed for WhatsApp Reminders (Expiring Consultations)
+var expiringPatientsSeed = [
+  {id: 'P-8802', name: 'Arjun Kumar', free_consult_expiry: new Date(Date.now()+86400000).toISOString().split('T')[0], reminder_sent: false},
+  {id: 'P-8805', name: 'Priya Singh', free_consult_expiry: new Date(Date.now()+172800000).toISOString().split('T')[0], reminder_sent: false},
+  {id: 'P-8812', name: 'Rohan Gupta', free_consult_expiry: new Date(Date.now()+86400000).toISOString().split('T')[0], reminder_sent: false}
+];
+
 // Mutable variables used across the application state
 var _allIssues    = [];
 var _issueFilter  = 'all';

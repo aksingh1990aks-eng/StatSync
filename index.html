@@ -274,10 +274,27 @@
               <div class="stat-card" data-emoji="👤"><div class="stat-top-row"><div class="stat-icon si-sky">👤</div></div><div class="stat-value">6</div><div class="stat-label">Waiting</div><div class="stat-sub">In queue</div></div>
               <div class="stat-card" data-emoji="💊"><div class="stat-top-row"><div class="stat-icon si-green">💊</div></div><div class="stat-value">2</div><div class="stat-label">In Treatment</div><div class="stat-sub">Being seen now</div></div>
             </div>
+            
             <div class="card">
               <div class="table-hd"><div class="section-title" style="font-size:13px;">Active Queue</div></div>
               <div class="tbl-wrap"><table><thead><tr><th>Priority</th><th>Patient</th><th>Condition</th><th>Severity</th><th>Appt. Time</th><th>Status</th><th>Doctor</th></tr></thead><tbody id="patients-tbody"></tbody></table></div>
             </div>
+
+            <div class="card" style="margin-top: 20px;">
+              <div class="table-hd">
+                <div class="section-title" style="font-size:13px;">Expiring Free Consultations</div>
+                <button class="btn-primary head-only" style="background:#25D366; border-color:#25D366; gap:6px;" onclick="sendWhatsAppReminders()">
+                  💬 Send WhatsApp Reminders
+                </button>
+              </div>
+              <div class="tbl-wrap">
+                <table>
+                  <thead><tr><th>Patient ID</th><th>Name</th><th>Expiry Date</th><th>WhatsApp Status</th></tr></thead>
+                  <tbody id="expiring-patients-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+            
           </div>
         </div>
       </section>
@@ -324,28 +341,26 @@
             </div>
           </div>
           
-          <!-- NEW: MLC AI REPORTS TABLE -->
           <div class="card" style="margin-top: 10px;">
             <div class="table-hd"><div class="section-title">Recent Medico-Legal Cases (MLC) - AI Scribe</div></div>
             <div class="tbl-wrap">
               <table>
                 <thead>
-  <tr>
-    <th>MLC ID</th>
-    <th>Date & Time</th>
-    <th>Patient Name</th>
-    <th>Incident Type</th>
-    <th>Urgency</th>
-    <th>Status</th>
-    <th>Actions</th> </tr>
+                  <tr>
+                    <th>MLC ID</th>
+                    <th>Date & Time</th>
+                    <th>Patient Name</th>
+                    <th>Incident Type</th>
+                    <th>Urgency</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
                 </thead>
                 <tbody id="mlc-reports-tbody">
-                  <!-- JS injects here -->
-                </tbody>
+                  </tbody>
               </table>
             </div>
           </div>
-          <!-- END NEW TABLE -->
           
         </div>
       </section>
@@ -513,6 +528,7 @@
     <div class="modal-footer"><button class="btn-sm btn-outline" onclick="closeModal('modal-oxygen')">Cancel</button><button class="btn-primary" onclick="submitOxygen()">Save</button></div>
   </div>
 </div>
+
 <div class="modal-overlay" id="modal-mlc-doc">
   <div class="modal-box" style="max-width: 650px;">
     <div class="modal-hd">
@@ -548,6 +564,7 @@
     </div>
   </div>
 </div>
+
 <div id="toast-container"></div>
 
 <script src="data.js"></script>

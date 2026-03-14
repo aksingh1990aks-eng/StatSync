@@ -50,6 +50,11 @@ async function loadSectionData(sectionId) {
   } catch (err) {
     console.warn('[MedCMD] API offline for', sectionId, '—', err.message);
     showToast('Using local data (API offline — ' + sectionId + ')', 'info');
+    
+    // Fallback for the patients/WhatsApp tab
+    if (sectionId === 'patients') {
+        renderExpiringPatients(typeof expiringPatientsSeed !== 'undefined' ? expiringPatientsSeed : []);
+    }
   }
 }
 
@@ -61,11 +66,9 @@ async function loadPredictiveSurge() {
     
     if (banner && data.surge_risk === "High") {
       banner.style.display = 'flex';
-      // Change colors to a warning theme (Amber/Orange)
       banner.style.background = 'linear-gradient(100deg, #fffbeb 0%, #ffffff 80%)';
       banner.style.borderColor = '#fde68a';
       
-      // Inject the AI data into the banner
       banner.innerHTML = `
         <span class="alert-banner-icon" style="animation: pulse-dot 2s infinite;">⚠️</span>
         <div class="alert-banner-text">
@@ -168,7 +171,9 @@ function renderTankGrid(tanks) {
       + editBtn + '</div>';
   }).join('');
 }
-// Add a global variable to store the reports at the top of the file or right above the function
+
+
+// ── MLC Reports & Document Viewer ───────────────────────────────────
 let _globalMLCReports = [];
 
 function renderMLCReports(reports) {
@@ -192,7 +197,6 @@ function renderMLCReports(reports) {
       ? '<span class="status-chip sc-on" style="background:var(--g50);color:var(--g700);border:1px solid var(--g200);"><span class="sc-dot"></span>Verified</span>'
       : '<span class="status-chip sc-off" style="background:#fffbeb;color:#d97706;border:1px solid #fde68a;"><span class="sc-dot"></span>AI Draft</span>';
 
-    // NEW: Action Button
     var actionBtn = `<button class="btn-sm btn-outline" onclick="viewMLCDocument('${r.mlc_number}')">📄 View Doc</button>`;
 
     return '<tr>'
@@ -202,11 +206,11 @@ function renderMLCReports(reports) {
       + '<td><span class="dept-pill">' + (r.incident_type || '—') + '</span></td>'
       + '<td><span class="priority-tag ' + (urgencyCls[r.urgency_level] || 'prio-low') + '">' + (r.urgency_level || 'UNKNOWN') + '</span></td>'
       + '<td>' + statHtml + '</td>'
-      + '<td>' + actionBtn + '</td>' // NEW COLUMN
+      + '<td>' + actionBtn + '</td>'
       + '</tr>';
   }).join('');
 }
-// Logic to populate and open the Document Modal
+
 function viewMLCDocument(mlcNumber) {
   const reportWrapper = _globalMLCReports.find(r => r.mlc_number === mlcNumber);
   if (!reportWrapper) return;
@@ -258,19 +262,78 @@ function viewMLCDocument(mlcNumber) {
   openModal('modal-mlc-doc');
 }
 
-// Logic to print the document cleanly
 function printMLC() {
   const printContent = document.getElementById('mlc-print-area').innerHTML;
   const originalContent = document.body.innerHTML;
 
-  // Temporarily replace the body with just the document to trigger print
   document.body.innerHTML = printContent;
   window.print();
   
-  // Restore the app state immediately after
   document.body.innerHTML = originalContent;
-  window.location.reload(); // Quickest way to re-bind all JS event listeners after replacing body
+  window.location.reload(); 
 }
+
+
+// ── WhatsApp Reminders (Expiring Consultations) ─────────────────────
+let _expiringPatientIds = [];
+
+function renderExpiringPatients(patients) {
+  var tbody = document.getElementById('expiring-patients-tbody');
+  if (!tbody) return;
+  
+  if (!patients || patients.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:32px;color:var(--n400);font-size:12px;">No expiring consultations</td></tr>';
+    _expiringPatientIds = [];
+    return;
+  }
+  
+  // Store IDs for the WhatsApp button
+  _expiringPatientIds = patients.map(p => p.id);
+  
+  tbody.innerHTML = patients.map(function(p) {
+    var statusHtml = p.reminder_sent 
+      ? '<span class="status-chip sc-on" style="background:var(--g50);color:var(--g700);border:1px solid var(--g200);">Sent</span>'
+      : '<span class="status-chip sc-off" style="background:#fffbeb;color:#d97706;border:1px solid #fde68a;">Pending</span>';
+    
+    return '<tr>'
+      + '<td style="font-family:\'IBM Plex Mono\';font-size:11px;color:var(--n400);">' + (p.id || '—') + '</td>'
+      + '<td style="font-weight:600;color:var(--n800);">' + (p.name || 'Unknown') + '</td>'
+      + '<td style="font-family:\'IBM Plex Mono\';font-size:11px;color:var(--n500);">' + (p.free_consult_expiry || '—') + '</td>'
+      + '<td>' + statusHtml + '</td>'
+      + '</tr>';
+  }).join('');
+}
+
+async function sendWhatsAppReminders() {
+  if (!_expiringPatientIds || _expiringPatientIds.length === 0) {
+    showToast('No pending reminders to send', 'info');
+    return;
+  }
+  try {
+    await apiFetch('/api/patients/send-reminders', {
+      method: 'POST',
+      body: JSON.stringify({ patient_ids: _expiringPatientIds })
+    });
+    showToast('WhatsApp reminders sent successfully!', 'success');
+    loadSectionData('patients'); // Refreshes the list from Supabase
+  } catch (err) {
+    showToast('Sent locally — API offline', 'info');
+    
+    // Fallback UI update if API fails
+    var tbody = document.getElementById('expiring-patients-tbody');
+    if (tbody) {
+       var rows = tbody.getElementsByTagName('tr');
+       for(var i=0; i<rows.length; i++) {
+          var statusCell = rows[i].cells[3];
+          if(statusCell && !statusCell.innerHTML.includes('Sent')) {
+              statusCell.innerHTML = '<span class="status-chip sc-on" style="background:var(--g50);color:var(--g700);border:1px solid var(--g200);">Sent</span>';
+          }
+       }
+    }
+    _expiringPatientIds = [];
+  }
+}
+
 
 // ── CRUD Logic ──────────────────────────────────────────────────────
 async function submitICUBed() {
