@@ -237,6 +237,12 @@ def get_dashboard_stats():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+
+@app.get("/api/icu")
+def get_icu_beds(): 
+    return supabase.table('icu_beds').select('*').execute().data
+
 @app.post("/api/icu")
 def add_icu_bed(payload: dict):
     """Adds a new ICU bed to Supabase"""
@@ -255,7 +261,9 @@ def delete_icu_bed(bed_id: str):
     res = supabase.table('icu_beds').delete().eq('id', bed_id).execute()
     return {"success": True}
     
-
+@app.get("/api/doctors")
+def get_doctors(): 
+    return supabase.table('doctors').select('*').execute().data
 @app.post("/api/doctors")
 def add_doctor(payload: dict):
     """Adds a new doctor to Supabase"""
