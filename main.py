@@ -239,11 +239,9 @@ def get_dashboard_stats():
 
 @app.get("/api/icu")
 def get_icu_beds(): return supabase.table('icu_beds').select('*').execute().data
+    
 
-@app.get("/api/doctors")
-def get_doctors(): return supabase.table('doctors').select('*').execute().data
-
-@app.post("/api/doctors"
+@app.post("/api/doctors")
 def add_doctor(payload: dict):
     """Adds a new doctor to Supabase"""
     res = supabase.table('doctors').insert(payload).execute()
