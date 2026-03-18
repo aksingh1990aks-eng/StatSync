@@ -276,10 +276,54 @@ async function submitOxygen() {
 async function submitIssue() {
   var title = _getVal('iss-title');
   if (!title) { showToast('Issue title is required','error'); return; }
-  var payload = {title:title, description:_getVal('iss-desc'), department:_getVal('iss-dept'), priority:_getVal('iss-priority'), created_by:USER_ROLE, status:'pending', created_at:new Date().toISOString()};
-  try { await apiFetch('/api/issues',{method:'POST',body:JSON.stringify(payload)}); showToast('Issue submitted','success'); }
-  catch(err) { showToast('Recorded locally (API offline)','info'); }
+  
+  var desc = _getVal('iss-desc');
+  var priority = _getVal('iss-priority');
+  var dept = _getVal('iss-dept');
+  
+  var payload = {
+    title: title, 
+    description: desc, 
+    department: dept, 
+    priority: priority, 
+    created_by: USER_ROLE, 
+    status: 'pending', 
+    created_at: new Date().toISOString()
+  };
+  
+  try { 
+    await apiFetch('/api/issues', {method:'POST', body:JSON.stringify(payload)}); 
+    showToast('Issue submitted', 'success'); 
+  } catch(err) { 
+    showToast('Recorded locally (API offline)', 'info'); 
+  }
+  
   closeModal('modal-issue');
+  
+  // ==========================================
+  // NEW: TRIGGER THE DASHBOARD ALERT BANNER
+  // ==========================================
+  var banner = document.getElementById('alert-banner');
+  if (banner) {
+    banner.style.display = 'flex';
+    
+    // Make Critical issues Red, and others Amber/Yellow
+    var isCritical = (priority === 'Critical');
+    banner.style.background = isCritical ? 'linear-gradient(100deg, #fef2f2 0%, #ffffff 80%)' : 'linear-gradient(100deg, #fffbeb 0%, #ffffff 80%)';
+    banner.style.borderColor = isCritical ? '#fecaca' : '#fde68a';
+    
+    var icon = isCritical ? '🔴' : '⚠️';
+    var color = isCritical ? '#ef4444' : '#d97706';
+    
+    banner.innerHTML = `
+      <span class="alert-banner-icon" style="animation: pulse-dot 2s infinite;">${icon}</span>
+      <div class="alert-banner-text">
+        <strong style="color: ${color}; text-transform: uppercase;">${priority} PRIORITY ISSUE: ${title} (${dept})</strong>&nbsp; 
+        ${desc ? desc : 'No additional description provided.'}
+      </div>
+      <button class="alert-banner-ack" style="color: ${color}; border-color: ${isCritical ? '#fecaca' : '#fde68a'};" onclick="this.parentElement.style.display='none'">Acknowledge</button>
+    `;
+  }
 }
 
 async function loadIssues() {
