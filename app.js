@@ -228,7 +228,7 @@ async function deleteICUBed(id) {
 async function submitDoctor() {
   var editId = _getVal('doctor-edit-id'), name = _getVal('doctor-name');
   if (!name) { showToast('Doctor name is required','error'); return; }
-  var payload = {name:name, department:_getVal('doctor-dept'), shift:_getVal('doctor-shift'), status:_getVal('doctor-status'), appointments:parseInt(_getVal('doctor-appts'))||0};
+  var payload = {name:name, dept:_getVal('doctor-dept'), shift:_getVal('doctor-shift'), status:_getVal('doctor-status'), appointments:parseInt(_getVal('doctor-appts'))||0};
   try {
     if (editId) { await apiFetch('/api/doctors/'+editId,{method:'PATCH',body:JSON.stringify(payload)}); showToast('Doctor updated','success'); }
     else        { await apiFetch('/api/doctors',         {method:'POST', body:JSON.stringify(payload)}); showToast('Doctor added',  'success'); }
