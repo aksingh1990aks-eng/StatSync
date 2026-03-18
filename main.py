@@ -237,8 +237,23 @@ def get_dashboard_stats():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/icu")
-def get_icu_beds(): return supabase.table('icu_beds').select('*').execute().data
+@app.post("/api/icu")
+def add_icu_bed(payload: dict):
+    """Adds a new ICU bed to Supabase"""
+    res = supabase.table('icu_beds').insert(payload).execute()
+    return res.data
+
+@app.patch("/api/icu/{bed_id}")
+def update_icu_bed(bed_id: str, payload: dict):
+    """Updates an existing ICU bed (Status, Patient, Condition)"""
+    res = supabase.table('icu_beds').update(payload).eq('id', bed_id).execute()
+    return res.data
+
+@app.delete("/api/icu/{bed_id}")
+def delete_icu_bed(bed_id: str):
+    """Deletes an ICU bed from Supabase"""
+    res = supabase.table('icu_beds').delete().eq('id', bed_id).execute()
+    return {"success": True}
     
 
 @app.post("/api/doctors")
@@ -258,7 +273,6 @@ def delete_doctor(doc_id: str):
     """Deletes a doctor from Supabase"""
     res = supabase.table('doctors').delete().eq('id', doc_id).execute()
     return {"success": True}
-
 @app.get("/api/ambulances")
 def get_ambulances(): return supabase.table('ambulances').select('*').execute().data
 # --- ADD THESE NEW ROUTES ---
