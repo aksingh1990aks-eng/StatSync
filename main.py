@@ -242,12 +242,73 @@ def get_icu_beds(): return supabase.table('icu_beds').select('*').execute().data
 
 @app.get("/api/doctors")
 def get_doctors(): return supabase.table('doctors').select('*').execute().data
+# --- Existing GET Route ---
+@app.get("/api/doctors")
+def get_doctors():
+    res = supabase.table('doctors').select('*').execute()
+    return res.data
+
+# --- ADD THESE NEW ROUTES ---
+
+@app.post("/api/doctors")
+def add_doctor(payload: dict):
+    """Adds a new doctor to Supabase"""
+    res = supabase.table('doctors').insert(payload).execute()
+    return res.data
+
+@app.patch("/api/doctors/{doc_id}")
+def update_doctor(doc_id: str, payload: dict):
+    """Updates an existing doctor"""
+    res = supabase.table('doctors').update(payload).eq('id', doc_id).execute()
+    return res.data
+
+@app.delete("/api/doctors/{doc_id}")
+def delete_doctor(doc_id: str):
+    """Deletes a doctor from Supabase"""
+    res = supabase.table('doctors').delete().eq('id', doc_id).execute()
+    return {"success": True}
 
 @app.get("/api/ambulances")
 def get_ambulances(): return supabase.table('ambulances').select('*').execute().data
+# --- ADD THESE NEW ROUTES ---
+
+@app.post("/api/ambulances")
+def add_ambulance(payload: dict):
+    """Adds a new ambulance to Supabase"""
+    res = supabase.table('ambulances').insert(payload).execute()
+    return res.data
+
+@app.patch("/api/ambulances/{amb_id}")
+def update_ambulance(amb_id: str, payload: dict):
+    """Updates an existing ambulance"""
+    res = supabase.table('ambulances').update(payload).eq('id', amb_id).execute()
+    return res.data
+
+@app.delete("/api/ambulances/{amb_id}")
+def delete_ambulance(amb_id: str):
+    """Deletes an ambulance from Supabase"""
+    res = supabase.table('ambulances').delete().eq('id', amb_id).execute()
+    return {"success": True}
 
 @app.get("/api/oxygen")
 def get_oxygen(): return supabase.table('oxygen_tanks').select('*').execute().data
+@app.post("/api/oxygen")
+def add_oxygen(payload: dict):
+    """Adds a new oxygen tank to Supabase"""
+    res = supabase.table('oxygen_tanks').insert(payload).execute()
+    return res.data
+
+@app.patch("/api/oxygen/{oxy_id}")
+def update_oxygen(oxy_id: str, payload: dict):
+    """Updates an existing oxygen tank"""
+    res = supabase.table('oxygen_tanks').update(payload).eq('id', oxy_id).execute()
+    return res.data
+
+@app.delete("/api/oxygen/{oxy_id}")
+def delete_oxygen(oxy_id: str):
+    """Deletes an oxygen tank from Supabase"""
+    res = supabase.table('oxygen_tanks').delete().eq('id', oxy_id).execute()
+    return {"success": True}
 
 @app.get("/api/issues")
 def get_issues(): return supabase.table('issues').select('*').execute().data
