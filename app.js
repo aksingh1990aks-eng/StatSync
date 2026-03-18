@@ -101,7 +101,7 @@ function renderBedGrid(beds) {
   grid.innerHTML = beds.map(function(b) {
     var s = statusTagMap[b.status] || statusTagMap.available;
     var editBtn = isHead
-      ? '<div style="display:flex;gap:5px;margin-top:8px;"><button class="btn-sm btn-outline" style="flex:1;font-size:10px;padding:3px 0;" onclick=\'openEditICU(' + JSON.stringify(b) + ')\'>Edit</button><button class="btn-sm btn-danger" style="font-size:10px;padding:3px 8px;" onclick="deleteICUBed(\'' + b._id + '\')">✕</button></div>'
+      ? '<div style="display:flex;gap:5px;margin-top:8px;"><button class="btn-sm btn-outline" style="flex:1;font-size:10px;padding:3px 0;" onclick=\'openEditICU(' + JSON.stringify(b) + ')\'>Edit</button><button class="btn-sm btn-danger" style="font-size:10px;padding:3px 8px;" onclick="deleteICUBed(\'' + (b.id || b._id) + '\')">✕</button></div>'
       : '';
     return '<div class="bed-card"><div class="bed-num">' + (b.bed_number||b.id) + '</div>'
       + '<div class="bed-status-tag ' + s.cls + '"><span style="width:5px;height:5px;border-radius:50%;background:' + s.dot + ';display:inline-block;"></span>' + s.label + '</div>'
@@ -125,7 +125,7 @@ function renderDoctorsTable(docs) {
     var waBtn = '<button class="btn-sm" style="background:#25D366; color:white; border:none; margin-left:4px; cursor:pointer;" onclick="contactDoctor(\'' + doctorPhone + '\', \'' + d.name + '\')">WhatsApp</button>';
 
     var actions = isHead
-      ? '<button class="btn-sm btn-outline" onclick=\'openEditDoctor(' + JSON.stringify(d) + ')\'>Edit</button>' + waBtn + '<button class="btn-sm btn-danger" onclick="deleteDoctor(\'' + d._id + '\')" style="margin-left:4px;">Delete</button>'
+      ? '<button class="btn-sm btn-outline" onclick=\'openEditDoctor(' + JSON.stringify(d) + ')\'>Edit</button>' + waBtn + '<button class="btn-sm btn-danger" onclick="deleteDoctor(\'' + (d.id || d._id) + '\')" style="margin-left:4px;">Delete</button>'
       : waBtn;
 
     return '<tr><td><div class="doc-cell"><div class="doc-avt">' + ini + '</div><span class="doc-name">' + d.name + '</span></div></td>'
@@ -146,7 +146,7 @@ function renderAmbGrid(ambs) {
     var c = ambStatusCfg[a.status] || ambStatusCfg.available;
     var actions = isHead
       ? '<button class="btn-sm btn-outline" onclick=\'openEditAmbulance(' + JSON.stringify(a) + ')\'>Edit</button>'
-        + (a.status==='available' ? '<button class="btn-sm btn-green" onclick="dispatchAmbulance(\'' + a._id + '\')">Dispatch</button>' : '')
+        + (a.status==='available' ? '<button class="btn-sm btn-green" onclick="dispatchAmbulance(\'' + (a.id || a._id) + '\')"Dispatch</button>' : '')
       : '';
     return '<div class="amb-card">'
       + '<div class="amb-header"><div><div class="amb-id">' + (a.id||a.vehicle_id||'') + '</div><div class="amb-driver">' + (a.driver||'') + '</div></div>'
