@@ -81,7 +81,6 @@
     font-size: 15px; color: white; box-shadow: 0 2px 6px rgba(34,160,99,.35);
   }
 
-  /* The live dot — kept as #liveDot, just restyled */
   .dot {
     width: 8px; height: 8px; border-radius: 50%;
     background: var(--n200); transition: all .3s;
@@ -129,12 +128,12 @@
   /* ─── Page Title Row ────────────────────────────────────────────────── */
   .page-title-row {
     text-align: center;
-    margin-bottom: 0;  /* title is now inside the hero panel */
+    margin-bottom: 0; 
   }
   .page-title { font-size: 24px; font-weight: 700; color: var(--n900); }
   .page-subtitle { font-size: 14px; color: var(--text2); margin-top: 4px; }
 
-  /* Hero control panel — centered */
+  /* Hero control panel */
   .hero-panel {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -170,7 +169,6 @@
     padding: 12px 0 8px;
   }
 
-  /* Hero mic button */
   .mic-btn {
     width: 148px; height: 148px; border-radius: 50%; border: none;
     cursor: pointer; flex-shrink: 0; transition: all .2s ease;
@@ -303,7 +301,6 @@
     font-family: var(--mono); text-transform: uppercase;
   }
 
-  /* Banners */
   .warn-banner, .ok-banner {
     display: flex; align-items: center; gap: 8px;
     padding: 10px 14px; border-radius: var(--r-sm);
@@ -317,7 +314,6 @@
     display: none;
   }
 
-  /* Fields */
   .fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 
   .field-group { display: flex; flex-direction: column; gap: 5px; }
@@ -343,7 +339,6 @@
     opacity: .65; background: var(--n100); cursor: not-allowed;
   }
 
-  /* Vitals */
   .vitals-box {
     margin-top: 18px; padding: 16px;
     background: var(--n50); border-radius: var(--r-md);
@@ -351,7 +346,6 @@
   }
   .vitals-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-top: 10px; }
 
-  /* Tags */
   .tags-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 
   .tag-injury {
@@ -365,7 +359,6 @@
     border-radius: 20px; font-size: 12px; font-weight: 500; color: var(--b500);
   }
 
-  /* Notes */
   .notes-area {
     width: 100%;
     background: var(--n50); border: 1px solid var(--border);
@@ -382,7 +375,6 @@
     background: var(--surface);
   }
 
-  /* ─── Nurse Verify Section ──────────────────────────────────────────── */
   .verify-section {
     margin-top: 20px; padding: 18px 20px;
     background: var(--g50); border: 1px solid var(--g200);
@@ -404,7 +396,6 @@
     box-shadow: 0 0 0 3px rgba(34,160,99,.12);
   }
 
-  /* ─── Buttons ───────────────────────────────────────────────────────── */
   .btn {
     padding: 9px 18px; border-radius: var(--r-sm);
     border: 1px solid transparent; cursor: pointer;
@@ -432,7 +423,6 @@
   }
   .btn-regen:hover { background: var(--b100); border-color: var(--b500); }
 
-  /* ─── Steps Guide — compact hint strip ─────────────────────────────── */
   .steps {
     display: grid; grid-template-columns: repeat(3, 1fr);
     gap: 12px; margin-top: 8px;
@@ -477,19 +467,16 @@
     font-size: 12px; color: var(--text3); line-height: 1.5;
   }
 
-  /* ─── Section dividers ──────────────────────────────────────────────── */
   .section-heading {
     font-size: 13px; font-weight: 600; color: var(--text2);
     margin-bottom: 4px; margin-top: 18px;
   }
 
-  /* ─── Animations ────────────────────────────────────────────────────── */
   @keyframes blink   { 0%,100%{opacity:1} 50%{opacity:.3} }
   @keyframes pulse   { 0%,100%{transform:scale(1)} 50%{transform:scale(1.05)} }
   @keyframes wave    { 0%,100%{height:25%} 50%{height:90%} }
   @keyframes spin    { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 
-  /* ─── Responsive ────────────────────────────────────────────────────── */
   @media (max-width: 700px) {
     .fields-grid, .vitals-grid { grid-template-columns: 1fr; }
     .steps { grid-template-columns: 1fr; }
@@ -501,10 +488,10 @@
     .hero-panel { padding: 32px 16px 24px; }
   }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
-<!-- ─── Header ──────────────────────────────────────────────────────────── -->
 <header>
   <div class="logo">
     <div class="logo-icon">🩺</div>
@@ -518,19 +505,15 @@
   </div>
 </header>
 
-<!-- ─── Main ────────────────────────────────────────────────────────────── -->
 <main>
 
-  <!-- Hero Panel: Title + Mic (centered) -->
   <div class="hero-panel">
 
-    <!-- Page title sits above the mic -->
     <div class="page-title-row">
       <div class="page-title">Virtual Ear</div>
       <div class="page-subtitle">Record ambulance calls — AI drafts the MLC report instantly.</div>
     </div>
 
-    <!-- Control: mic + status, now stacked vertically -->
     <div class="control">
       <button class="mic-btn" id="micBtn" onclick="toggleRecording()">🎙</button>
       <div class="status-area">
@@ -543,35 +526,29 @@
     <div class="error-box" id="errorBox"></div>
   </div>
 
-  <!-- Re-generate button (only visible after a report is done) -->
   <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
     <button class="btn btn-regen" id="regenBtn" style="display:none" onclick="regenerate()">↻ Re-generate</button>
   </div>
 
-  <!-- Tabs + content -->
   <div id="tabsArea" style="display:none">
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab('transcript', this)">📻 Raw Transcript</button>
       <button class="tab-btn" onclick="switchTab('report', this)">📋 MLC Draft Report</button>
     </div>
 
-    <!-- Transcript tab -->
     <div class="tab-content active" id="tab-transcript">
       <div class="transcript-box" id="transcriptBox">
         <span id="finalText"></span><span class="interim" id="interimText"></span>
       </div>
     </div>
 
-    <!-- Report tab -->
     <div class="tab-content" id="tab-report">
 
-      <!-- Processing state -->
       <div class="processing" id="processingBox" style="display:none">
         <span class="processing-icon">⚙</span>
         <div class="processing-label">AI parsing transcript → MLC draft…</div>
       </div>
 
-      <!-- MLC Form -->
       <div id="mlcForm" style="display:none" class="panel" style="margin-bottom:0">
 
         <div class="mlc-header">
@@ -585,16 +562,13 @@
         <div class="warn-banner" id="warnBanner">⚠ AI Draft — Provisional. All fields are editable. Nurse must verify before submission.</div>
         <div class="ok-banner" id="okBanner">✓ Verified — Cleared for hospital records.</div>
 
-        <!-- Main fields -->
         <div class="fields-grid" id="fieldsGrid"></div>
 
-        <!-- Vitals -->
         <div class="vitals-box">
           <div class="label">Vital Signs (Reported)</div>
           <div class="vitals-grid" id="vitalsGrid"></div>
         </div>
 
-        <!-- Injuries + Complaints -->
         <div style="margin-top:16px">
           <div class="label">Visible Injuries</div>
           <div class="tags-row" id="injuriesTags"></div>
@@ -604,13 +578,11 @@
           <div class="tags-row" id="complaintsTags"></div>
         </div>
 
-        <!-- Notes -->
         <div style="margin-top:16px">
           <div class="label">Additional Notes</div>
           <textarea class="notes-area" id="notesField" rows="3" placeholder="Any extra context…"></textarea>
         </div>
 
-        <!-- Nurse verify -->
         <div class="verify-section" id="verifySection">
           <div class="verify-label-col">
             <div class="label" style="margin-bottom:0">Nurse Verification</div>
@@ -618,13 +590,13 @@
           <input class="nurse-input" id="nurseInput" type="text" placeholder="Enter nurse name…" />
           <button class="btn btn-verify" onclick="verifyMLC()">✓ Verify &amp; Submit</button>
           <button class="btn btn-ghost" onclick="discardReport()">Discard</button>
+          <button class="btn btn-ghost" style="margin-left: auto; color: var(--b500); border-color: var(--b200);" onclick="downloadPDF()">📄 Download PDF</button>
         </div>
 
-      </div><!-- /mlcForm -->
-    </div><!-- /tab-report -->
-  </div><!-- /tabsArea -->
+      </div>
+    </div>
+  </div>
 
-  <!-- Steps Guide — compact hints at the bottom -->
   <div class="steps" id="stepsGuide">
     <div class="step-card">
       <div class="step-left"><div class="step-icon">🎙</div></div>
@@ -654,12 +626,10 @@
 
 </main>
 
-<!-- ─── JavaScript — UNCHANGED ─────────────────────────────────────────── -->
 <script>
 // IMPORTANT: Points to your local FastAPI server
 const API_BASE_URL = 'https://statsync-kese.onrender.com';
 
-// ─── State ────────────────────────────────────────────────────────────────────
 let recognition = null;
 let isRecording = false;
 let finalTranscript = "";
@@ -669,7 +639,6 @@ let timerSeconds = 0;
 let currentMLC = null;
 let waveInterval = null;
 
-// ─── Recording ────────────────────────────────────────────────────────────────
 function toggleRecording() {
   if (isRecording) stopRecording();
   else startRecording();
@@ -739,7 +708,6 @@ async function stopRecording() {
   await generateMLC(full);
 }
 
-// ─── API Calls ────────────────────────────────────────────────────────────────
 async function generateMLC(transcript) {
   switchTab('report', document.querySelectorAll('.tab-btn')[1]);
   document.getElementById('processingBox').style.display = 'block';
@@ -772,7 +740,6 @@ async function verifyMLC() {
   if (!nurseName) { alert("Please enter nurse name."); return; }
   if (!currentMLC) return;
 
-  // Collect edited values back
   document.querySelectorAll('.field-input[data-key]').forEach(input => {
     const key = input.dataset.key;
     if (key.includes('.')) {
@@ -811,7 +778,6 @@ async function regenerate() {
   if (finalTranscript) await generateMLC(finalTranscript);
 }
 
-// ─── Render MLC ───────────────────────────────────────────────────────────────
 const URGENCY_COLORS = { CRITICAL:'#ef4444', HIGH:'#f59e0b', MODERATE:'#3b82f6', LOW:'#22a063' };
 const URGENCY_BGS    = { CRITICAL:'#fef2f2', HIGH:'#fffbeb', MODERATE:'#eff6ff', LOW:'#f0faf4' };
 const URGENCY_BORDERS= { CRITICAL:'#fecaca', HIGH:'#fde68a', MODERATE:'#bfdbfe', LOW:'#a8e2c3' };
@@ -825,7 +791,6 @@ function renderMLC(r) {
   ub.textContent = r.urgency_level;
   ub.style.cssText = `padding:6px 16px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.12em;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;background:${ubg};border:1px solid ${ubr};color:${uc}`;
 
-  // Main fields
   const mainFields = [
     ['Patient Name','patient_name'],['Age','age'],['Gender','gender'],
     ['Time of Call','time_of_call'],['Incident Type','incident_type'],
@@ -839,7 +804,6 @@ function renderMLC(r) {
     </div>`
   ).join('');
 
-  // Vitals
   const vitals = [['Consciousness','consciousness'],['Bleeding','bleeding'],['Breathing','breathing']];
   document.getElementById('vitalsGrid').innerHTML = vitals.map(([lbl, key]) =>
     `<div class="field-group">
@@ -848,7 +812,6 @@ function renderMLC(r) {
     </div>`
   ).join('');
 
-  // Tags
   document.getElementById('injuriesTags').innerHTML = (r.visible_injuries||[]).map(i =>
     `<span class="tag-injury">${i}</span>`).join('');
   document.getElementById('complaintsTags').innerHTML = (r.chief_complaints||[]).map(c =>
@@ -873,7 +836,6 @@ function discardReport() {
   setUIState('idle');
 }
 
-// ─── UI State Machine ─────────────────────────────────────────────────────────
 function setUIState(state) {
   const btn = document.getElementById('micBtn');
   const dot = document.getElementById('liveDot');
@@ -907,7 +869,7 @@ function setUIState(state) {
     label.textContent = 'Call ended — Report ready';
     main.textContent = 'Ready'; main.className = 'status-main';
     regen.style.display = 'inline-flex';
-  } else { // idle
+  } else { 
     btn.className = 'mic-btn'; btn.textContent = '🎙'; btn.disabled = false;
     dot.className = 'dot';
     label.textContent = 'Press mic to begin recording';
@@ -926,7 +888,6 @@ function renderWaveBars() {
 }
 function clearWaveBars() { document.getElementById('waveform').innerHTML = ''; }
 
-// ─── Tabs ─────────────────────────────────────────────────────────────────────
 function switchTab(name, btnEl) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
@@ -935,13 +896,36 @@ function switchTab(name, btnEl) {
   if (tc) tc.classList.add('active');
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 function showError(msg) {
   const el = document.getElementById('errorBox');
   el.textContent = msg ? '⚠ ' + msg : '';
   el.className = msg ? 'error-box show' : 'error-box';
 }
 function fmt(s) { return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0'); }
+
+// ─── PDF Generation ───────────────────────────────────────────────────────────
+function downloadPDF() {
+  if (!currentMLC) return;
+  
+  const element = document.getElementById('mlcForm');
+  const verifySec = document.getElementById('verifySection');
+  
+  // Hide the verification action buttons momentarily so they don't appear in the PDF
+  verifySec.style.display = 'none'; 
+  
+  const opt = {
+    margin:       0.5,
+    filename:     `${currentMLC.mlc_number.replace(/\//g, '_')}_Report.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, useCORS: true },
+    jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+  };
+  
+  html2pdf().set(opt).from(element).save().then(() => {
+    // Restore the buttons after the PDF is generated
+    verifySec.style.display = 'flex';
+  });
+}
 </script>
 </body>
 </html>

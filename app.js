@@ -2,6 +2,15 @@
    app.js — Core Logic, Rendering, CRUD, and Bootstrapping
 ══════════════════════════════════════════════════════════════════════ */
 
+// Keep track of issues the admin has already dismissed from the banner
+var _acknowledgedIssues = new Set();
+
+window.ackIssueAlert = function(id) {
+  _acknowledgedIssues.add(id);
+  var banner = document.getElementById('alert-banner');
+  if (banner) banner.style.display = 'none';
+};
+
 // ── API Layer ───────────────────────────────────────────────────────
 async function apiFetch(path, options) {
   options = options || {};
@@ -329,8 +338,41 @@ async function submitIssue() {
 async function loadIssues() {
   try { _allIssues = await apiFetch('/api/issues'); }
   catch(_) { _allIssues = issuesSeed; }
+  
   renderIssues();
   updateIssueSummary();
+
+  // NEW: Automatically alert the HEAD role if there are pending issues
+  if (USER_ROLE === 'HEAD') {
+    var pending = _allIssues.filter(function(i) { 
+      return i.status === 'pending' && !_acknowledgedIssues.has(i._id || i.id); 
+    });
+    
+    var banner = document.getElementById('alert-banner');
+    if (banner && pending.length > 0) {
+      // Sort to show the most recent issue first
+      pending.sort(function(a,b) { return new Date(b.created_at) - new Date(a.created_at); });
+      var latest = pending[0];
+      var isCritical = (latest.priority === 'Critical' || latest.priority === 'High');
+      
+      banner.style.display = 'flex';
+      banner.style.background = isCritical ? 'linear-gradient(100deg, #fef2f2 0%, #ffffff 80%)' : 'linear-gradient(100deg, #fffbeb 0%, #ffffff 80%)';
+      banner.style.borderColor = isCritical ? '#fecaca' : '#fde68a';
+      
+      var icon = isCritical ? '🔴' : '⚠️';
+      var color = isCritical ? '#ef4444' : '#d97706';
+      var issId = latest._id || latest.id;
+      
+      banner.innerHTML = `
+        <span class="alert-banner-icon" style="animation: pulse-dot 2s infinite;">${icon}</span>
+        <div class="alert-banner-text">
+          <strong style="color: ${color}; text-transform: uppercase;">NEW ${latest.priority} ISSUE: ${latest.title} (${latest.department})</strong>&nbsp; 
+          ${latest.description ? latest.description : 'No additional description provided.'}
+        </div>
+        <button class="alert-banner-ack" style="color: ${color}; border-color: ${isCritical ? '#fecaca' : '#fde68a'};" onclick="ackIssueAlert('${issId}')">Acknowledge</button>
+      `;
+    }
+  }
 }
 
 function filterIssues(f) {
@@ -538,7 +580,12 @@ window.addEventListener('DOMContentLoaded', function() {
   // ── API background loads ──────────────────────────────────────────
   loadDashboardStats();
   loadPredictiveSurge();
-  if (USER_ROLE === 'HEAD') loadIssues();
+  
+  if (USER_ROLE === 'HEAD') {
+    loadIssues();
+    // Poll for new issues every 15 seconds to simulate real-time alerts
+    setInterval(loadIssues, 15000); 
+  }
 });
 
 
